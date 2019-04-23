@@ -46,13 +46,11 @@ const abortable = new Abortable( (resolve, reject, onAbort) => {
 
 `onAbort()` can be called to register a handler for abort events on the promise. `onAbort()` can be called at any time.
 
-If the abortable receives an abort signal, the handler will be called with the abort error `err` and a callback `cb`. The handler will only be called once. The handler will only be called if the abortable is in a pending state i.e. `resolve()` or `reject()` has not already been called.
+If the abortable receives an abort signal, the handler will be called with the abort error `err`. The handler will only be called once. The handler will only be called if the abortable is in a pending state i.e. `resolve()` or `reject()` has not already been called.
 
 The handler can choose how to handle the abort signal. Usual behavior would be to stop the ongoing task as quickly as possible, clear up any resources, and call the `reject()` handler with the abort error.
 
 If the task is at a point where it is too late (or inefficient) to stop, the handler can choose to ignore the abort signal.
-
-Optionally, the handler may call the callback `cb()` with no arguments to signal that it intends to accept the abort signal and abort the task. Calling `reject()` with the abort error implicitly calls `cb()`.
 
 The abortable will be rejected with the error, which can be handled with `.catch()` as usual.
 
@@ -60,21 +58,18 @@ The abortable will be rejected with the error, which can be handled with `.catch
 const abortable = new Abortable( (resolve, reject, onAbort) => {
   /* Start task ... */
 
-  onAbort( (err, cb) => {
-	cb(); // Signal that intend to abort
-
-    /* Stop task and clean up resources ... */
+  onAbort( (err) => {
+	/* Stop task and clean up resources ... */
 
 	reject(err); // Signal abort successful
   });
 } );
 ```
 
-### `.abort( error, callback, unilateral )`
+### `.abort( error, unilateral )`
 
 * `error` is the error that the abortable which accepts the abort signal will reject with.
-* `callback()` will be called with no arguments if/when abort succeeds
-* `unilateral` if `true` will unilaterally abort with no regard to whether other followers have requested an abort
+* `unilateral` if `true` will unilaterally abort with no regard to whether other followers have requested an abort.
 
 ### Abort propogation
 
