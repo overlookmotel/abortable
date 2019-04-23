@@ -6,3 +6,4 @@ coverage
 .jshintrc
 .npmignore
 .travis.yml
+npm-debug.log
