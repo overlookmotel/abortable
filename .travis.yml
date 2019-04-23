@@ -7,6 +7,8 @@ node_js:
   - "4"
   - "6"
   - "8"
+  - "10"
+  - "11"
 
 branches:
   except:
@@ -15,7 +17,7 @@ branches:
 matrix:
   fast_finish: true
   include:
-    - node_js: "4"
+    - node_js: "10"
       env: COVERAGE=true
   allow_failures:
     - env: COVERAGE=true
