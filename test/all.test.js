@@ -13,11 +13,8 @@ require('./utils');
 
 // Tests
 
-/* jshint expr: true */
-/* global describe, it */
-
-describe('Tests', function() {
-	it.skip('all', function() {
+describe('tests', () => {
+	it.skip('all', () => { // eslint-disable-line jest/no-disabled-tests
 		expect(Promise).not.toBeUndefined();
 	});
 });
