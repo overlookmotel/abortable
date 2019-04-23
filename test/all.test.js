@@ -6,12 +6,10 @@
 'use strict';
 
 // Modules
-const chai = require('chai'),
-	expect = chai.expect,
-	Promise = require('../lib/');
+const Promise = require('../lib/');
 
 // Init
-chai.config.includeStack = true;
+require('./utils');
 
 // Tests
 
@@ -20,6 +18,6 @@ chai.config.includeStack = true;
 
 describe('Tests', function() {
 	it.skip('all', function() {
-		expect(Promise).to.be.ok;
+		expect(Promise).not.toBeUndefined();
 	});
 });
