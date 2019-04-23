@@ -6,7 +6,7 @@
 'use strict';
 
 // Modules
-const Promise = require('../lib/');
+const Promise = require('../index');
 
 // Init
 require('./utils');

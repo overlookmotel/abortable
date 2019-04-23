@@ -2,7 +2,7 @@
   "name": "abortable",
   "version": "0.0.0",
   "description": "Abortable promises",
-  "main": "./lib/",
+  "main": "index.js",
   "author": {
     "name": "Overlook Motel"
   },
