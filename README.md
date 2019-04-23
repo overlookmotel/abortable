@@ -52,6 +52,8 @@ The handler can choose how to handle the abort signal. Usual behavior would be t
 
 If the task is at a point where it is too late (or inefficient) to stop, the handler can choose to ignore the abort signal.
 
+`onAbort()` can be called at any point before `resolve()` or `reject()` is called. If the Abortable has been aborted prior to `onAbort()` being called to register a handler, the handler will be called immediately.
+
 The abortable will be rejected with the error, which can be handled with `.catch()` as usual.
 
 ```js
