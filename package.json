@@ -13,8 +13,7 @@
   "bugs": {
     "url": "https://github.com/overlookmotel/abortable/issues"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "coveralls": "^3.0.3",
     "cross-env": "^5.2.0",
@@ -26,12 +25,12 @@
     "abort",
     "promise",
     "cancel",
-	"halt",
-	"stop",
-	"throw",
-	"interrupt",
-	"thenable",
-	"bluebird"
+    "halt",
+    "stop",
+    "throw",
+    "interrupt",
+    "thenable",
+    "bluebird"
   ],
   "scripts": {
     "test": "npm run lint && npm run test-main",
