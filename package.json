@@ -29,8 +29,7 @@
     "stop",
     "throw",
     "interrupt",
-    "thenable",
-    "bluebird"
+    "thenable"
   ],
   "scripts": {
     "test": "npm run lint && npm run test-main",
