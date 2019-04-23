@@ -3,7 +3,8 @@ coverage
 .editorconfig
 .gitattributes
 .gitignore
-.jshintrc
+.eslintignore
+.eslintrc.js
 .npmignore
 .travis.yml
 npm-debug.log
