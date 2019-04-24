@@ -15,8 +15,8 @@ const {spy, tick} = require('./utils');
 
 describe('.abort()', () => {
 	describe('called directly on constructed Abortable', () => {
-		describe('calls abort handler', () => {
-			it('when abort handler added synchronously inside executor', () => {
+		describe('calls abort handler when abort handler added', () => {
+			it('synchronously inside executor', () => {
 				const fn = spy();
 				const p = new Abortable((resolve, reject, onAbort) => {
 					onAbort(fn);
@@ -29,7 +29,7 @@ describe('.abort()', () => {
 				expect(fn).toHaveBeenCalledTimes(1);
 			});
 
-			it('when abort handler added asynchronously', async () => {
+			it('asynchronously', async () => {
 				let onAbort;
 				const p = new Abortable((resolve, reject, _onAbort) => {
 					onAbort = _onAbort;
@@ -46,7 +46,7 @@ describe('.abort()', () => {
 				expect(fn).toHaveBeenCalledTimes(1);
 			});
 
-			it('when abort handler added after .abort() called', () => {
+			it('after .abort() called', () => {
 				let onAbort;
 				const p = new Abortable((resolve, reject, _onAbort) => {
 					onAbort = _onAbort;
@@ -59,8 +59,8 @@ describe('.abort()', () => {
 			});
 		});
 
-		describe('calls abort handler with specified error', () => {
-			it('when abort handler added synchronously inside executor', () => {
+		describe('calls abort handler with specified error when abort handler added', () => {
+			it('synchronously inside executor', () => {
 				const fn = spy();
 				const p = new Abortable((resolve, reject, onAbort) => {
 					onAbort(fn);
@@ -71,7 +71,7 @@ describe('.abort()', () => {
 				expect(fn).toHaveBeenCalledWith(err);
 			});
 
-			it('when abort handler added asynchronously', async () => {
+			it('asynchronously', async () => {
 				let onAbort;
 				const p = new Abortable((resolve, reject, _onAbort) => {
 					onAbort = _onAbort;
@@ -86,7 +86,7 @@ describe('.abort()', () => {
 				expect(fn).toHaveBeenCalledWith(err);
 			});
 
-			it('when abort handler added after .abort() called', () => {
+			it('after .abort() called', () => {
 				let onAbort;
 				const p = new Abortable((resolve, reject, _onAbort) => {
 					onAbort = _onAbort;
@@ -100,8 +100,8 @@ describe('.abort()', () => {
 			});
 		});
 
-		describe('calls abort handler with default AbortError if none specified', () => {
-			it('when abort handler added synchronously inside executor', () => {
+		describe('calls abort handler with default AbortError if none specified when abort handler added', () => {
+			it('synchronously inside executor', () => {
 				const fn = spy();
 				const p = new Abortable((resolve, reject, onAbort) => {
 					onAbort(fn);
@@ -113,7 +113,7 @@ describe('.abort()', () => {
 				expect(args[0]).toBeInstanceOf(Abortable.AbortError);
 			});
 
-			it('when abort handler added asynchronously', async () => {
+			it('asynchronously', async () => {
 				let onAbort;
 				const p = new Abortable((resolve, reject, _onAbort) => {
 					onAbort = _onAbort;
@@ -129,7 +129,7 @@ describe('.abort()', () => {
 				expect(args[0]).toBeInstanceOf(Abortable.AbortError);
 			});
 
-			it('when abort handler added after .abort() called', () => {
+			it('after .abort() called', () => {
 				let onAbort;
 				const p = new Abortable((resolve, reject, _onAbort) => {
 					onAbort = _onAbort;
@@ -144,8 +144,8 @@ describe('.abort()', () => {
 			});
 		});
 
-		describe('does not call abort handler if resolve() already called', () => {
-			it('when abort handler added and resolve called synchronously inside executor', async () => {
+		describe('does not call abort handler if resolve() called before .abort() and', () => {
+			it('abort handler added and resolve called synchronously inside executor', async () => {
 				const fn = spy();
 				const p = new Abortable((resolve, reject, onAbort) => {
 					onAbort(fn);
@@ -157,7 +157,7 @@ describe('.abort()', () => {
 				expect(fn).not.toHaveBeenCalled();
 			});
 
-			it('when abort handler added synchronously inside executor and resolve called async', async () => {
+			it('abort handler added synchronously inside executor and resolve called async', async () => {
 				let resolve;
 				const fn = spy();
 				const p = new Abortable((_resolve, reject, onAbort) => {
@@ -173,7 +173,7 @@ describe('.abort()', () => {
 				expect(fn).not.toHaveBeenCalled();
 			});
 
-			it('when abort handler added asynchronously', async () => {
+			it('abort handler added asynchronously', async () => {
 				let resolve, onAbort;
 				const p = new Abortable((_resolve, _reject, _onAbort) => {
 					resolve = _resolve;
@@ -190,7 +190,7 @@ describe('.abort()', () => {
 				expect(fn).not.toHaveBeenCalled();
 			});
 
-			it('when abort handler added after .abort() called', async () => {
+			it('abort handler added after .abort() called', async () => {
 				let resolve, onAbort;
 				const p = new Abortable((_resolve, _reject, _onAbort) => {
 					resolve = _resolve;
@@ -206,8 +206,8 @@ describe('.abort()', () => {
 			});
 		});
 
-		describe('does not call abort handler if reject() already called', () => {
-			it('when abort handler added and reject called synchronously inside executor', async () => {
+		describe('does not call abort handler if reject() called before .abort() and', () => {
+			it('abort handler added and reject called synchronously inside executor', async () => {
 				const fn = spy();
 				const p = new Abortable((resolve, reject, onAbort) => {
 					onAbort(fn);
@@ -219,7 +219,7 @@ describe('.abort()', () => {
 				expect(fn).not.toHaveBeenCalled();
 			});
 
-			it('when abort handler added synchronously inside executor and reject called async', async () => {
+			it('abort handler added synchronously inside executor and reject called async', async () => {
 				let reject;
 				const fn = spy();
 				const p = new Abortable((_resolve, _reject, onAbort) => {
@@ -235,7 +235,7 @@ describe('.abort()', () => {
 				expect(fn).not.toHaveBeenCalled();
 			});
 
-			it('when abort handler added asynchronously', async () => {
+			it('abort handler added asynchronously', async () => {
 				let reject, onAbort;
 				const p = new Abortable((_resolve, _reject, _onAbort) => {
 					reject = _reject;
@@ -252,7 +252,7 @@ describe('.abort()', () => {
 				expect(fn).not.toHaveBeenCalled();
 			});
 
-			it('when abort handler added after .abort() called', async () => {
+			it('abort handler added after .abort() called', async () => {
 				let reject, onAbort;
 				const p = new Abortable((_resolve, _reject, _onAbort) => {
 					reject = _reject;

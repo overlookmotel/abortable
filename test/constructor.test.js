@@ -107,8 +107,8 @@ describe('new Abortable()', () => {
 	});
 
 	describe('onAbort()', () => {
-		describe('registers abort handler', () => {
-			it('if called synchronously inside executor', () => {
+		describe('registers abort handler when called', () => {
+			it('synchronously inside executor', () => {
 				const fn = () => {};
 				const p = new Abortable((resolve, reject, onAbort) => {
 					onAbort(fn);
@@ -117,7 +117,7 @@ describe('new Abortable()', () => {
 				expect(p._abortHandler).toBe(fn);
 			});
 
-			it('if called asynchronously', async () => {
+			it('asynchronously', async () => {
 				let onAbort;
 				const p = new Abortable((resolve, reject, _onAbort) => { onAbort = _onAbort; });
 				await tick();
@@ -128,8 +128,8 @@ describe('new Abortable()', () => {
 			});
 		});
 
-		describe('does not register abort handler', () => {
-			describe('if resolve() called first', () => {
+		describe('does not register abort handler if', () => {
+			describe('resolve() called first', () => {
 				it('synchronously inside executor', async () => {
 					const p = new Abortable((resolve, reject, onAbort) => {
 						resolve();
@@ -140,7 +140,7 @@ describe('new Abortable()', () => {
 					await p;
 				});
 
-				it('asynchronously inside executor', async () => {
+				it('asynchronously', async () => {
 					let resolve, onAbort;
 					const p = new Abortable((_resolve, _reject, _onAbort) => {
 						resolve = _resolve;
@@ -155,7 +155,7 @@ describe('new Abortable()', () => {
 				});
 			});
 
-			describe('if reject() called first', () => {
+			describe('reject() called first', () => {
 				it('synchronously inside executor', async () => {
 					const p = new Abortable((resolve, reject, onAbort) => {
 						reject();
@@ -168,7 +168,7 @@ describe('new Abortable()', () => {
 					await p.catch(() => {});
 				});
 
-				it('asynchronously inside executor', async () => {
+				it('asynchronously', async () => {
 					let reject, onAbort;
 					const p = new Abortable((_resolve, _reject, _onAbort) => {
 						reject = _reject;
@@ -187,7 +187,7 @@ describe('new Abortable()', () => {
 			});
 		});
 
-		describe('throws if not passed a function', () => {
+		describe('throws if not passed a function if called', () => {
 			function expectCorrectError(err) {
 				expect(err).toBeDefined();
 				expect(err).toBeInstanceOf(TypeError);
@@ -195,7 +195,7 @@ describe('new Abortable()', () => {
 			}
 
 			// eslint-disable-next-line jest/expect-expect
-			it('if called synchronously inside executor', () => {
+			it('synchronously inside executor', () => {
 				let err;
 				new Abortable((resolve, reject, onAbort) => { // eslint-disable-line no-new
 					err = tryCatch(() => onAbort());
@@ -205,7 +205,7 @@ describe('new Abortable()', () => {
 			});
 
 			// eslint-disable-next-line jest/expect-expect
-			it('if called asynchronously', async () => {
+			it('asynchronously', async () => {
 				let onAbort;
 				// eslint-disable-next-line no-new
 				new Abortable((resolve, reject, _onAbort) => { onAbort = _onAbort; });
@@ -216,7 +216,7 @@ describe('new Abortable()', () => {
 			});
 		});
 
-		describe('throws if called twice', () => {
+		describe('throws if called twice when', () => {
 			function expectCorrectError(err) {
 				expect(err).toBeDefined();
 				expect(err).toBeInstanceOf(Error);
@@ -224,7 +224,7 @@ describe('new Abortable()', () => {
 			}
 
 			// eslint-disable-next-line jest/expect-expect
-			it('if both calls synchronously inside executor', () => {
+			it('both calls synchronously inside executor', () => {
 				let err;
 				new Abortable((resolve, reject, onAbort) => { // eslint-disable-line no-new
 					onAbort(() => {});
@@ -235,7 +235,7 @@ describe('new Abortable()', () => {
 			});
 
 			// eslint-disable-next-line jest/expect-expect
-			it('if 1st call synchronously inside executor, 2nd call async', async () => {
+			it('1st call synchronously inside executor, 2nd call async', async () => {
 				let onAbort;
 				// eslint-disable-next-line no-new
 				new Abortable((resolve, reject, _onAbort) => {
@@ -249,7 +249,7 @@ describe('new Abortable()', () => {
 			});
 
 			// eslint-disable-next-line jest/expect-expect
-			it('if both calls async', async () => {
+			it('both calls async', async () => {
 				let onAbort;
 				// eslint-disable-next-line no-new
 				new Abortable((resolve, reject, _onAbort) => { onAbort = _onAbort; });
