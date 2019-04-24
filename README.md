@@ -48,13 +48,11 @@ const abortable = new Abortable( (resolve, reject, onAbort) => {
 
 If the abortable receives an abort signal, the handler will be called with the abort error `err`. The handler will only be called once. The handler will only be called if the abortable is in a pending state i.e. `resolve()` or `reject()` has not already been called.
 
-The handler can choose how to handle the abort signal. Usual behavior would be to stop the ongoing task as quickly as possible, clear up any resources, and call the `reject()` handler with the abort error.
+The handler can choose how to handle the abort signal. Usual behavior would be to stop the ongoing task as quickly as possible, clear up any resources, and call the `reject()` handler with the abort error. The Abortable will be rejected with the error, which can be handled with `.catch()` as usual.
 
 If the task is at a point where it is too late (or inefficient) to stop, the handler can choose to ignore the abort signal.
 
-`onAbort()` can be called at any point before `resolve()` or `reject()` is called. If the Abortable has been aborted prior to `onAbort()` being called to register a handler, the handler will be called immediately.
-
-The abortable will be rejected with the error, which can be handled with `.catch()` as usual.
+If the Abortable has been aborted already and then `onAbort()` is called, the handler will be called immediately.
 
 ```js
 const abortable = new Abortable( (resolve, reject, onAbort) => {
