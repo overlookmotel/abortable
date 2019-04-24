@@ -188,17 +188,23 @@ describe('new Abortable()', () => {
 		});
 
 		describe('throws if not passed a function', () => {
+			function expectCorrectError(err) {
+				expect(err).toBeDefined();
+				expect(err).toBeInstanceOf(TypeError);
+				expect(err.message).toBe('onAbort() must be passed a function');
+			}
+
+			// eslint-disable-next-line jest/expect-expect
 			it('if called synchronously inside executor', () => {
 				let err;
 				new Abortable((resolve, reject, onAbort) => { // eslint-disable-line no-new
 					err = tryCatch(() => onAbort());
 				});
 
-				expect(err).toBeDefined();
-				expect(err).toBeInstanceOf(TypeError);
-				expect(err.message).toBe('onAbort() must be passed a function');
+				expectCorrectError(err);
 			});
 
+			// eslint-disable-next-line jest/expect-expect
 			it('if called asynchronously', async () => {
 				let onAbort;
 				// eslint-disable-next-line no-new
@@ -206,9 +212,7 @@ describe('new Abortable()', () => {
 				await tick();
 
 				const err = tryCatch(() => onAbort());
-				expect(err).toBeDefined();
-				expect(err).toBeInstanceOf(TypeError);
-				expect(err.message).toBe('onAbort() must be passed a function');
+				expectCorrectError(err);
 			});
 		});
 	});
