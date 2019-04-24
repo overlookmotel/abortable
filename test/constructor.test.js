@@ -37,7 +37,7 @@ describe('new Abortable()', () => {
 	});
 
 	describe('throws same error as Promise constructor if executor is', () => {
-		function sameErrorMessage(value) {
+		function expectSameError(value) {
 			const err1 = tryCatch(() => new Promise(value));
 			const err2 = tryCatch(() => new Abortable(value));
 			expect(err1).toBeDefined();
@@ -47,27 +47,27 @@ describe('new Abortable()', () => {
 		}
 
 		it('undefined', () => { // eslint-disable-line jest/expect-expect
-			sameErrorMessage();
+			expectSameError();
 		});
 
 		it('null', () => { // eslint-disable-line jest/expect-expect
-			sameErrorMessage(null);
+			expectSameError(null);
 		});
 
 		it('boolean', () => { // eslint-disable-line jest/expect-expect
-			sameErrorMessage(true);
+			expectSameError(true);
 		});
 
 		it('string', () => { // eslint-disable-line jest/expect-expect
-			sameErrorMessage('abc');
+			expectSameError('abc');
 		});
 
 		it('number', () => { // eslint-disable-line jest/expect-expect
-			sameErrorMessage(123);
+			expectSameError(123);
 		});
 
 		it('object', () => { // eslint-disable-line jest/expect-expect
-			sameErrorMessage({call() {}});
+			expectSameError({call() {}});
 		});
 	});
 
