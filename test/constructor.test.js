@@ -215,5 +215,50 @@ describe('new Abortable()', () => {
 				expectCorrectError(err);
 			});
 		});
+
+		describe('throws if called twice', () => {
+			function expectCorrectError(err) {
+				expect(err).toBeDefined();
+				expect(err).toBeInstanceOf(Error);
+				expect(err.message).toBe('onAbort() cannot be called twice');
+			}
+
+			// eslint-disable-next-line jest/expect-expect
+			it('if both calls synchronously inside executor', () => {
+				let err;
+				new Abortable((resolve, reject, onAbort) => { // eslint-disable-line no-new
+					onAbort(() => {});
+					err = tryCatch(() => onAbort(() => {}));
+				});
+
+				expectCorrectError(err);
+			});
+
+			// eslint-disable-next-line jest/expect-expect
+			it('if 1st call synchronously inside executor, 2nd call async', async () => {
+				let onAbort;
+				// eslint-disable-next-line no-new
+				new Abortable((resolve, reject, _onAbort) => {
+					onAbort = _onAbort;
+					onAbort(() => {});
+				});
+				await tick();
+
+				const err = tryCatch(() => onAbort(() => {}));
+				expectCorrectError(err);
+			});
+
+			// eslint-disable-next-line jest/expect-expect
+			it('if both calls async', async () => {
+				let onAbort;
+				// eslint-disable-next-line no-new
+				new Abortable((resolve, reject, _onAbort) => { onAbort = _onAbort; });
+				await tick();
+
+				onAbort(() => {});
+				const err = tryCatch(() => onAbort(() => {}));
+				expectCorrectError(err);
+			});
+		});
 	});
 });

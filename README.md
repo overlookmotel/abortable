@@ -44,7 +44,7 @@ const abortable = new Abortable( (resolve, reject, onAbort) => {
 
 ### `onAbort( handler )`
 
-`onAbort()` can be called to register a handler for abort events on the promise. `onAbort()` can be called at any time.
+`onAbort()` can be called to register a handler for abort events on the promise. `onAbort()` can be called at any time, but must only be called once.
 
 If the abortable receives an abort signal, the handler will be called with the abort error `err`. The handler will only be called once. The handler will only be called if the abortable is in a pending state i.e. `resolve()` or `reject()` has not already been called.
 
