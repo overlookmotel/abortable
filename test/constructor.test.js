@@ -147,6 +147,8 @@ describe('new Abortable()', () => {
 		});
 
 		describe('resolve() called', () => {
+			afterEach(() => p);
+
 			it('_abortHandler', async () => {
 				const fn = () => {};
 				onAbort(fn);
@@ -154,8 +156,6 @@ describe('new Abortable()', () => {
 				expect(p._abortHandler).toBe(fn);
 				resolve();
 				expect(p._abortHandler).toBeUndefined();
-
-				await p;
 			});
 
 			it('_abortError', async () => {
@@ -165,12 +165,12 @@ describe('new Abortable()', () => {
 				expect(p._abortError).toBe(err);
 				resolve();
 				expect(p._abortError).toBeUndefined();
-
-				await p;
 			});
 		});
 
 		describe('reject() called', () => {
+			afterEach(() => p.catch(() => {}));
+
 			it('_abortHandler', async () => {
 				const fn = () => {};
 				onAbort(fn);
@@ -178,8 +178,6 @@ describe('new Abortable()', () => {
 				expect(p._abortHandler).toBe(fn);
 				reject();
 				expect(p._abortHandler).toBeUndefined();
-
-				await p.catch(() => {});
 			});
 
 			it('_abortError', async () => {
@@ -189,8 +187,6 @@ describe('new Abortable()', () => {
 				expect(p._abortError).toBe(err);
 				reject();
 				expect(p._abortError).toBeUndefined();
-
-				await p.catch(() => {});
 			});
 		});
 	});
