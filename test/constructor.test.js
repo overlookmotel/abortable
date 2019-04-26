@@ -135,6 +135,66 @@ describe('new Abortable()', () => {
 		});
 	});
 
+	describe('clears state when', () => {
+		let p, resolve, reject, onAbort;
+		beforeEach(() => {
+			p = new Abortable((_resolve, _reject, _onAbort) => {
+				resolve = _resolve;
+				reject = _reject;
+				onAbort = _onAbort;
+			});
+			noUnhandledRejection(p);
+		});
+
+		describe('resolve() called', () => {
+			it('_abortHandler', async () => {
+				const fn = () => {};
+				onAbort(fn);
+
+				expect(p._abortHandler).toBe(fn);
+				resolve();
+				expect(p._abortHandler).toBeUndefined();
+
+				await p;
+			});
+
+			it('_abortError', async () => {
+				const err = new Error('err');
+				p.abort(err);
+
+				expect(p._abortError).toBe(err);
+				resolve();
+				expect(p._abortError).toBeUndefined();
+
+				await p;
+			});
+		});
+
+		describe('reject() called', () => {
+			it('_abortHandler', async () => {
+				const fn = () => {};
+				onAbort(fn);
+
+				expect(p._abortHandler).toBe(fn);
+				reject();
+				expect(p._abortHandler).toBeUndefined();
+
+				await p.catch(() => {});
+			});
+
+			it('_abortError', async () => {
+				const err = new Error('err');
+				p.abort(err);
+
+				expect(p._abortError).toBe(err);
+				reject();
+				expect(p._abortError).toBeUndefined();
+
+				await p.catch(() => {});
+			});
+		});
+	});
+
 	describe('onAbort()', () => {
 		describe('registers abort handler when called', () => {
 			it('synchronously inside executor', () => {
