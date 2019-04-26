@@ -267,5 +267,12 @@ describe('.abort()', () => {
 				expect(fn).not.toHaveBeenCalled();
 			});
 		});
+
+		it('marks promise as not abortable', () => {
+			const p = new Abortable(() => {});
+			expect(p.canAbort()).toBe(true);
+			p.abort();
+			expect(p.canAbort()).toBe(false);
+		});
 	});
 });

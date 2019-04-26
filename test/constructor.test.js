@@ -106,6 +106,35 @@ describe('new Abortable()', () => {
 		expect(resolveHandler).not.toHaveBeenCalled();
 	});
 
+	it('initially flagged as abortable', () => {
+		const p = new Abortable(() => {});
+		expect(p.canAbort()).toBe(true);
+	});
+
+	describe('flags promise as not abortable after', () => {
+		it('resolve called', async () => {
+			let resolve;
+			const p = new Abortable((_resolve) => { resolve = _resolve; });
+			expect(p.canAbort()).toBe(true);
+
+			resolve();
+			expect(p.canAbort()).toBe(false);
+
+			await p;
+		});
+
+		it('reject called', async () => {
+			let reject;
+			const p = new Abortable((_resolve, _reject) => { reject = _reject; });
+			expect(p.canAbort()).toBe(true);
+
+			reject();
+			expect(p.canAbort()).toBe(false);
+
+			await p.catch(() => {});
+		});
+	});
+
 	describe('onAbort()', () => {
 		describe('registers abort handler when called', () => {
 			it('synchronously inside executor', () => {
