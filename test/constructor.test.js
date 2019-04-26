@@ -191,6 +191,88 @@ describe('new Abortable()', () => {
 		});
 	});
 
+	describe('follows value resolve() called with when is', () => {
+		let p, resolve, onAbort;
+		beforeEach(() => {
+			p = new Abortable((_resolve, _reject, _onAbort) => {
+				resolve = _resolve;
+				onAbort = _onAbort;
+			});
+		});
+
+		describe('Abortable', () => { // eslint-disable-line jest/lowercase-name
+			// TODO Remove this ESLint comment
+			// eslint-disable-next-line no-unused-vars
+			let pInner, resolveInner;
+			beforeEach(() => {
+				pInner = new Abortable((_resolve) => { resolveInner = _resolve; });
+			});
+
+			it('clears _abortHandler', () => {
+				const fn = () => {};
+				onAbort(fn);
+				expect(p._abortHandler).toBe(fn);
+				resolve(pInner);
+				expect(p._abortHandler).toBeUndefined();
+			});
+
+			it('records following on original', () => {
+				expect(p._awaiting).toBeUndefined();
+				resolve(pInner);
+				expect(p._awaiting).toBe(pInner);
+			});
+
+			it('records following on followed', () => {
+				expect(pInner._followers).toBeUndefined();
+				resolve(pInner);
+				const {_followers} = pInner;
+				expect(_followers).toBeArray();
+				expect(_followers).toHaveLength(1);
+				expect(_followers).toContain(p);
+			});
+
+			// TODO Tests for what happens when inner promise resolved/rejected
+		});
+
+		describe('abortable object', () => {
+			let pInner;
+			beforeEach(() => {
+				pInner = {then() {}, abort() {}};
+			});
+
+			it('clears _abortHandler', () => {
+				const fn = () => {};
+				onAbort(fn);
+				expect(p._abortHandler).toBe(fn);
+				resolve(pInner);
+				// expect(p._abortHandler).toBeUndefined();
+			});
+
+			it('records following on original', () => {
+				expect(p._awaiting).toBeUndefined();
+				resolve(pInner);
+				expect(p._awaiting).toBeInstanceOf(Abortable);
+			});
+
+			it('records following on followed proxy', () => {
+				expect(pInner._followers).toBeUndefined();
+				resolve(pInner);
+				const {_followers} = p._awaiting;
+				expect(_followers).toBeArray();
+				expect(_followers).toHaveLength(1);
+				expect(_followers).toContain(p);
+			});
+
+			// TODO Tests for what happens when inner promise resolved/rejected
+		});
+	});
+
+	describe('does not follow value resolve() called with when is', () => {
+		describe('Promise', () => { // eslint-disable-line jest/lowercase-name
+			// TODO Write this!
+		});
+	});
+
 	describe('onAbort()', () => {
 		describe('registers abort handler when called', () => {
 			it('synchronously inside executor', () => {
