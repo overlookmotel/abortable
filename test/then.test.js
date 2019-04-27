@@ -39,4 +39,6 @@ describe('.then()', () => {
 			expect(p2).toBeInstanceOf(Abortable);
 		});
 	});
+
+	// TODO More tests
 });
