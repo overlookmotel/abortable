@@ -66,10 +66,9 @@ const abortable = new Abortable( (resolve, reject, onAbort) => {
 } );
 ```
 
-### `.abort( error, unilateral )`
+### `.abort( error )`
 
-* `error` is the error that the abortable which accepts the abort signal will reject with.
-* `unilateral` if `true` will unilaterally abort with no regard to whether other followers have requested an abort.
+`error` is the error that the abortable which accepts the abort signal will be passed.
 
 ### Abort propogation
 
