@@ -209,6 +209,12 @@ describe('new Abortable()', () => {
 				});
 			});
 
+			it('does not flag promise as not abortable', () => {
+				expect(p.canAbort()).toBe(true);
+				resolve(pInner);
+				expect(p.canAbort()).toBe(true);
+			});
+
 			it('clears _abortHandler', () => {
 				const fn = () => {};
 				onAbort(fn);
@@ -331,6 +337,12 @@ describe('new Abortable()', () => {
 					},
 					abort() {}
 				};
+			});
+
+			it('does not flag promise as not abortable', () => {
+				expect(p.canAbort()).toBe(true);
+				resolve(pInner);
+				expect(p.canAbort()).toBe(true);
 			});
 
 			it('clears _abortHandler', () => {
