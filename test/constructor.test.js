@@ -460,6 +460,10 @@ describe('new Abortable()', () => {
 	});
 
 	describe('does not follow value resolve() called with when is', () => {
+		describe('Abortable which is already aborted', () => { // eslint-disable-line jest/lowercase-name
+			// TODO Write this!
+		});
+
 		describe('Promise', () => { // eslint-disable-line jest/lowercase-name
 			// TODO Write this!
 		});
