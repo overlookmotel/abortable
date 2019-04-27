@@ -201,11 +201,12 @@ describe('new Abortable()', () => {
 		});
 
 		describe('Abortable', () => { // eslint-disable-line jest/lowercase-name
-			// TODO Remove this ESLint comment
-			// eslint-disable-next-line no-unused-vars
-			let pInner, resolveInner;
+			let pInner, resolveInner, rejectInner;
 			beforeEach(() => {
-				pInner = new Abortable((_resolve) => { resolveInner = _resolve; });
+				pInner = new Abortable((_resolve, _reject) => {
+					resolveInner = _resolve;
+					rejectInner = _reject;
+				});
 			});
 
 			it('clears _abortHandler', () => {
@@ -231,13 +232,89 @@ describe('new Abortable()', () => {
 				expect(_followers).toContain(p);
 			});
 
-			// TODO Tests for what happens when inner promise resolved/rejected
+			describe('when resolved', () => {
+				beforeEach(() => { resolve(pInner); });
+				afterEach(() => p);
+
+				it('calls .then resolve handler', async () => {
+					const resolveHandler = spy(),
+						rejectHandler = spy();
+					p.then(resolveHandler, rejectHandler);
+
+					await tick();
+					expect(resolveHandler).not.toHaveBeenCalled();
+
+					resolveInner(123);
+					await tick();
+					expect(resolveHandler).toHaveBeenCalledTimes(1);
+					expect(resolveHandler).toHaveBeenCalledWith(123);
+					expect(rejectHandler).not.toHaveBeenCalled();
+				});
+
+				it('clears record of following on original', () => {
+					expect(p._awaiting).toBe(pInner);
+					resolveInner();
+					expect(p._awaiting).toBeUndefined();
+				});
+
+				it('clears record of following on followed', () => {
+					expect(pInner._followers).toBeArray();
+					resolveInner();
+					expect(pInner._followers).toBeUndefined();
+				});
+
+				// TODO More tests!
+			});
+
+			describe('when rejected', () => {
+				beforeEach(() => {
+					resolve(pInner);
+					noUnhandledRejection(p);
+				});
+				afterEach(() => p.catch(() => {}));
+
+				it('calls .then reject handler', async () => {
+					const resolveHandler = spy(),
+						rejectHandler = spy();
+					p.then(resolveHandler, rejectHandler);
+
+					await tick();
+					expect(rejectHandler).not.toHaveBeenCalled();
+
+					const err = new Error('err');
+					rejectInner(err);
+					await tick();
+					expect(rejectHandler).toHaveBeenCalledTimes(1);
+					expect(rejectHandler).toHaveBeenCalledWith(err);
+					expect(resolveHandler).not.toHaveBeenCalled();
+				});
+
+				it('clears record of following on original', () => {
+					expect(p._awaiting).toBe(pInner);
+					rejectInner();
+					expect(p._awaiting).toBeUndefined();
+				});
+
+				it('clears record of following on followed', () => {
+					expect(pInner._followers).toBeArray();
+					rejectInner();
+					expect(pInner._followers).toBeUndefined();
+				});
+
+				// TODO More tests!
+			});
 		});
 
 		describe('abortable object', () => {
-			let pInner;
+			let pInner, resolveInner, rejectInner;
 			beforeEach(() => {
-				pInner = {then() {}, abort() {}};
+				pInner = {
+					then(resolveHandler, rejectHandler) {
+						resolveInner = value => resolveHandler(value);
+						rejectInner = value => rejectHandler(value);
+					},
+					abort() {}
+				};
 			});
 
 			it('clears _abortHandler', () => {
@@ -245,7 +322,7 @@ describe('new Abortable()', () => {
 				onAbort(fn);
 				expect(p._abortHandler).toBe(fn);
 				resolve(pInner);
-				// expect(p._abortHandler).toBeUndefined();
+				expect(p._abortHandler).toBeUndefined();
 			});
 
 			it('records following on original', () => {
@@ -255,7 +332,6 @@ describe('new Abortable()', () => {
 			});
 
 			it('records following on followed proxy', () => {
-				expect(pInner._followers).toBeUndefined();
 				resolve(pInner);
 				const {_followers} = p._awaiting;
 				expect(_followers).toBeArray();
@@ -263,7 +339,83 @@ describe('new Abortable()', () => {
 				expect(_followers).toContain(p);
 			});
 
-			// TODO Tests for what happens when inner promise resolved/rejected
+			describe('when resolved', () => {
+				beforeEach(() => { resolve(pInner); });
+				afterEach(() => p);
+
+				it('calls .then resolve handler', async () => {
+					const resolveHandler = spy(),
+						rejectHandler = spy();
+					p.then(resolveHandler, rejectHandler);
+
+					await tick();
+					expect(resolveHandler).not.toHaveBeenCalled();
+
+					resolveInner(123);
+					await tick();
+					expect(resolveHandler).toHaveBeenCalledTimes(1);
+					expect(resolveHandler).toHaveBeenCalledWith(123);
+					expect(rejectHandler).not.toHaveBeenCalled();
+				});
+
+				it('clears record of following on original', () => {
+					expect(p._awaiting).toBeInstanceOf(Abortable);
+					resolveInner();
+					expect(p._awaiting).toBeUndefined();
+				});
+
+				/*
+				it('clears record of following on followed', () => {
+					const {_followers} = p._awaiting;
+					expect(_followers).toBeArray();
+					resolveInner();
+					expect(_followers).toBeUndefined();
+				});
+				*/
+
+				// TODO More tests!
+			});
+
+			describe('when rejected', () => {
+				beforeEach(() => {
+					resolve(pInner);
+					noUnhandledRejection(p);
+				});
+				afterEach(() => p.catch(() => {}));
+
+				it('calls .then reject handler', async () => {
+					const resolveHandler = spy(),
+						rejectHandler = spy();
+					p.then(resolveHandler, rejectHandler);
+
+					await tick();
+					expect(rejectHandler).not.toHaveBeenCalled();
+
+					const err = new Error('err');
+					rejectInner(err);
+					await tick();
+					expect(rejectHandler).toHaveBeenCalledTimes(1);
+					expect(rejectHandler).toHaveBeenCalledWith(err);
+					expect(resolveHandler).not.toHaveBeenCalled();
+				});
+
+				it('clears record of following on original', () => {
+					expect(p._awaiting).toBeInstanceOf(Abortable);
+					rejectInner();
+					expect(p._awaiting).toBeUndefined();
+				});
+
+				/*
+				it('clears record of following on followed', () => {
+					const {_followers} = p._awaiting;
+					expect(_followers).toBeArray();
+					rejectInner();
+					expect(_followers).toBeUndefined();
+				});
+				*/
+
+				// TODO More tests!
+			});
 		});
 	});
 
