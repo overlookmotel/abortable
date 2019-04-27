@@ -329,11 +329,17 @@ describe('new Abortable()', () => {
 					expect(p.canAbort()).toBe(true);
 				});
 
-				it('clears _abortHandler', () => {
+				it('clears _abortHandler when onAbort() called before resolve()', () => {
 					const fn = () => {};
 					onAbort(fn);
 					expect(p._abortHandler).toBe(fn);
 					resolve(pInner);
+					expect(p._abortHandler).toBeUndefined();
+				});
+
+				it('does not register _abortHandler when onAbort() called after resolve()', () => {
+					resolve(pInner);
+					onAbort(() => {});
 					expect(p._abortHandler).toBeUndefined();
 				});
 
@@ -587,11 +593,17 @@ describe('new Abortable()', () => {
 					expect(p.canAbort()).toBe(true);
 				});
 
-				it('clears _abortHandler', () => {
+				it('clears _abortHandler when onAbort() called before resolve()', () => {
 					const fn = () => {};
 					onAbort(fn);
 					expect(p._abortHandler).toBe(fn);
 					resolve(pInner);
+					expect(p._abortHandler).toBeUndefined();
+				});
+
+				it('does not register _abortHandler when onAbort() called after resolve()', () => {
+					resolve(pInner);
+					onAbort(() => {});
 					expect(p._abortHandler).toBeUndefined();
 				});
 
