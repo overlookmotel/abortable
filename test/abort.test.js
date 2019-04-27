@@ -274,5 +274,67 @@ describe('.abort()', () => {
 			p.abort();
 			expect(p.canAbort()).toBe(false);
 		});
+
+		it('clears _abortHandler when abort handler registered before abort', () => {
+			const fn = () => {};
+			const p = new Abortable((resolve, reject, onAbort) => { onAbort(fn); });
+
+			expect(p._abortHandler).toBe(fn);
+			p.abort();
+			expect(p._abortHandler).toBeUndefined();
+		});
+
+		it('does not record _abortHandler when abort handler registered after abort', () => {
+			let onAbort;
+			const p = new Abortable((_resolve, _reject, _onAbort) => { onAbort = _onAbort; });
+
+			expect(p._abortHandler).toBeUndefined();
+			p.abort();
+			expect(p._abortHandler).toBeUndefined();
+			onAbort(() => {});
+			expect(p._abortHandler).toBeUndefined();
+		});
+
+		describe('records _abortError when', () => {
+			it('no onAbort handler registered', () => {
+				const p = new Abortable(() => {});
+
+				const err = new Error('err');
+				p.abort(err);
+				expect(p._abortError).toBe(err);
+			});
+
+			it('onAbort handler registered', () => {
+				const p = new Abortable((resolve, reject, onAbort) => { onAbort(() => {}); });
+
+				const err = new Error('err');
+				p.abort(err);
+				expect(p._abortError).toBe(err);
+			});
+
+			it('onAbort handler registered after abort', () => {
+				let onAbort;
+				const p = new Abortable((_resolve, _reject, _onAbort) => { onAbort = _onAbort; });
+
+				const err = new Error('err');
+				p.abort(err);
+				onAbort(() => {});
+				expect(p._abortError).toBe(err);
+			});
+		});
 	});
+
+	describe('called on Abortable resolved with another Abortable', () => {
+		// TODO Write tests
+	});
+
+	describe('called on Abortable resolved with abortable object', () => {
+		// TODO Write tests
+	});
+
+	describe('called on Abortable chained on another Abortable with `.then`', () => {
+		// TODO Write tests
+	});
+
+	// TODO More tests
 });
