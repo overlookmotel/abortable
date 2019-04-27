@@ -364,14 +364,12 @@ describe('new Abortable()', () => {
 					expect(p._awaiting).toBeUndefined();
 				});
 
-				/*
 				it('clears record of following on followed', () => {
-					const {_followers} = p._awaiting;
-					expect(_followers).toBeArray();
+					const proxy = p._awaiting;
+					expect(proxy._followers).toBeArray();
 					resolveInner();
-					expect(_followers).toBeUndefined();
+					expect(proxy._followers).toBeUndefined();
 				});
-				*/
 
 				// TODO More tests!
 			});
@@ -405,14 +403,12 @@ describe('new Abortable()', () => {
 					expect(p._awaiting).toBeUndefined();
 				});
 
-				/*
 				it('clears record of following on followed', () => {
-					const {_followers} = p._awaiting;
-					expect(_followers).toBeArray();
+					const proxy = p._awaiting;
+					expect(proxy._followers).toBeArray();
 					rejectInner();
-					expect(_followers).toBeUndefined();
+					expect(proxy._followers).toBeUndefined();
 				});
-				*/
 
 				// TODO More tests!
 			});
