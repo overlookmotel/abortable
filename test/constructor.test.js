@@ -787,12 +787,212 @@ describe('new Abortable()', () => {
 	});
 
 	describe('does not follow value resolve() called with when is', () => {
-		describe('Abortable which is already aborted', () => { // eslint-disable-line jest/lowercase-name
-			// TODO Write this!
+		function runTests({setup, afterCreatePromise, after}) {
+			describe('inside constructor', () => {
+				let p, onAbort,
+					pInner;
+				beforeEach(() => {
+					pInner = setup().p;
+					p = new Abortable((resolve, _reject, _onAbort) => {
+						onAbort = _onAbort;
+						resolve(pInner);
+					});
+					if (afterCreatePromise) afterCreatePromise(p);
+				});
+
+				afterEach(() => { // eslint-disable-line consistent-return
+					if (after) return after(p);
+				});
+
+				it('flags promise as not abortable', () => {
+					expect(p.canAbort()).toBe(false);
+				});
+
+				describe('does not record _abortHandler when onAbort() called', () => {
+					describe('inside constructor and onAbort() called', () => {
+						it('first', () => {
+							p = new Abortable((resolve) => {
+								onAbort(() => {});
+								resolve(pInner);
+							});
+
+							expect(p._abortHandler).toBeUndefined();
+						});
+
+						it('last', () => {
+							p = new Abortable((resolve) => {
+								resolve(pInner);
+								onAbort(() => {});
+							});
+
+							expect(p._abortHandler).toBeUndefined();
+						});
+					});
+
+					it('outside constructor', () => {
+						onAbort(() => {});
+						expect(p._abortHandler).toBeUndefined();
+					});
+				});
+
+				it('does not record _abortError', () => {
+					p.abort();
+					expect(p._abortError).toBeUndefined();
+				});
+
+				it('does not record following on original', () => {
+					expect(p._awaiting).toBeUndefined();
+				});
+
+				it('does not record following on followed', () => {
+					expect(pInner._followers).toBeUndefined();
+				});
+			});
+
+			describe('outside constructor', () => {
+				let p, resolve, onAbort,
+					pInner;
+				beforeEach(() => {
+					pInner = new Abortable(() => {});
+					pInner.abort();
+					p = new Abortable((_resolve, _reject, _onAbort) => {
+						resolve = _resolve;
+						onAbort = _onAbort;
+					});
+				});
+
+				it('flags promise as not abortable', () => {
+					expect(p.canAbort()).toBe(true);
+					resolve(pInner);
+					expect(p.canAbort()).toBe(false);
+				});
+
+				describe('clears _abortHandler when onAbort() called before resolve() and onAbort() called', () => {
+					it('inside constructor', () => {
+						const fn = () => {};
+						// eslint-disable-next-line no-shadow
+						p = new Abortable((_resolve, _reject, onAbort) => {
+							resolve = _resolve;
+							onAbort(fn);
+						});
+						expect(p._abortHandler).toBe(fn);
+						resolve(pInner);
+						expect(p._abortHandler).toBeUndefined();
+					});
+
+					it('outside constructor', () => {
+						const fn = () => {};
+						onAbort(fn);
+						expect(p._abortHandler).toBe(fn);
+						resolve(pInner);
+						expect(p._abortHandler).toBeUndefined();
+					});
+				});
+
+				it('does not register _abortHandler when onAbort() called after resolve()', () => {
+					resolve(pInner);
+					onAbort(() => {});
+					expect(p._abortHandler).toBeUndefined();
+				});
+
+				it('clears _abortError', () => {
+					const err = new Error('err');
+					p.abort(err);
+					expect(p._abortError).toBe(err);
+					resolve(pInner);
+					expect(p._abortError).toBeUndefined();
+				});
+
+				it('does not record following on original', () => {
+					resolve(pInner);
+					expect(p._awaiting).toBeUndefined();
+				});
+
+				it('does not record following on followed', () => {
+					resolve(pInner);
+					expect(pInner._followers).toBeUndefined();
+				});
+			});
+		}
+
+		describe('Abortable which is already', () => { // eslint-disable-line jest/lowercase-name
+			describe('aborted', () => {
+				runTests({
+					setup() {
+						const p = new Abortable(() => {});
+						p.abort();
+						return {p};
+					}
+				});
+			});
+
+			describe('resolved', () => {
+				runTests({
+					setup() {
+						const p = new Abortable((resolve) => { resolve(); });
+						return {p};
+					},
+					after(p) {
+						return p;
+					}
+				});
+			});
+
+			describe('rejected', () => {
+				runTests({
+					setup() {
+						const err = new Error('err');
+						const p = new Abortable((resolve, reject) => { reject(err); });
+						noUnhandledRejection(p);
+						return {p, err};
+					},
+					afterCreatePromise(p) {
+						noUnhandledRejection(p);
+					},
+					after(p) {
+						return p.catch(() => {});
+					}
+				});
+			});
 		});
 
-		describe('Promise', () => { // eslint-disable-line jest/lowercase-name
-			// TODO Write this!
+		describe('Promise which is', () => { // eslint-disable-line jest/lowercase-name
+			describe('pending', () => {
+				runTests({
+					setup() {
+						const p = new Promise(() => {});
+						return {p};
+					}
+				});
+			});
+
+			describe('resolved', () => {
+				runTests({
+					setup() {
+						const p = new Promise((resolve) => { resolve(); });
+						return {p};
+					},
+					after(p) {
+						return p;
+					}
+				});
+			});
+
+			describe('rejected', () => {
+				runTests({
+					setup() {
+						const err = new Error('err');
+						const p = new Promise((resolve, reject) => { reject(err); });
+						return {p, err};
+					},
+					afterCreatePromise(p) {
+						noUnhandledRejection(p);
+					},
+					after(p) {
+						return p.catch(() => {});
+					}
+				});
+			});
 		});
 	});
 
