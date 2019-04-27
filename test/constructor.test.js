@@ -217,6 +217,14 @@ describe('new Abortable()', () => {
 				expect(p._abortHandler).toBeUndefined();
 			});
 
+			it('clears _abortError', () => {
+				const err = new Error('err');
+				p.abort(err);
+				expect(p._abortError).toBe(err);
+				resolve(pInner);
+				expect(p._abortError).toBeUndefined();
+			});
+
 			it('records following on original', () => {
 				expect(p._awaiting).toBeUndefined();
 				resolve(pInner);
@@ -263,7 +271,11 @@ describe('new Abortable()', () => {
 					expect(pInner._followers).toBeUndefined();
 				});
 
-				// TODO More tests!
+				it('flags promise as not abortable', () => {
+					expect(p.canAbort()).toBe(true);
+					resolveInner();
+					expect(p.canAbort()).toBe(false);
+				});
 			});
 
 			describe('when rejected', () => {
@@ -301,7 +313,11 @@ describe('new Abortable()', () => {
 					expect(pInner._followers).toBeUndefined();
 				});
 
-				// TODO More tests!
+				it('flags promise as not abortable', () => {
+					expect(p.canAbort()).toBe(true);
+					resolveInner();
+					expect(p.canAbort()).toBe(false);
+				});
 			});
 		});
 
@@ -323,6 +339,14 @@ describe('new Abortable()', () => {
 				expect(p._abortHandler).toBe(fn);
 				resolve(pInner);
 				expect(p._abortHandler).toBeUndefined();
+			});
+
+			it('clears _abortError', () => {
+				const err = new Error('err');
+				p.abort(err);
+				expect(p._abortError).toBe(err);
+				resolve(pInner);
+				expect(p._abortError).toBeUndefined();
 			});
 
 			it('records following on original', () => {
@@ -371,7 +395,11 @@ describe('new Abortable()', () => {
 					expect(proxy._followers).toBeUndefined();
 				});
 
-				// TODO More tests!
+				it('flags promise as not abortable', () => {
+					expect(p.canAbort()).toBe(true);
+					resolveInner();
+					expect(p.canAbort()).toBe(false);
+				});
 			});
 
 			describe('when rejected', () => {
@@ -410,7 +438,11 @@ describe('new Abortable()', () => {
 					expect(proxy._followers).toBeUndefined();
 				});
 
-				// TODO More tests!
+				it('flags promise as not abortable', () => {
+					expect(p.canAbort()).toBe(true);
+					rejectInner();
+					expect(p.canAbort()).toBe(false);
+				});
 			});
 		});
 	});
