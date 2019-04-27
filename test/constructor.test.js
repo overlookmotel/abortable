@@ -333,7 +333,7 @@ describe('new Abortable()', () => {
 				pInner = {
 					then(resolveHandler, rejectHandler) {
 						resolveInner = value => resolveHandler(value);
-						rejectInner = value => rejectHandler(value);
+						rejectInner = err => rejectHandler(err);
 					},
 					abort() {}
 				};
