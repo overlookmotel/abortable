@@ -211,9 +211,31 @@ describe('new Abortable()', () => {
 					expect(p.canAbort()).toBe(true);
 				});
 
-				it('does not record _abortHandler', () => {
-					onAbort(() => {});
-					expect(p._abortHandler).toBeUndefined();
+				describe('does not record _abortHandler when onAbort() called', () => {
+					describe('inside constructor and onAbort() called', () => {
+						it('first', () => {
+							p = new Abortable((resolve) => {
+								onAbort(() => {});
+								resolve(pInner);
+							});
+
+							expect(p._abortHandler).toBeUndefined();
+						});
+
+						it('last', () => {
+							p = new Abortable((resolve) => {
+								resolve(pInner);
+								onAbort(() => {});
+							});
+
+							expect(p._abortHandler).toBeUndefined();
+						});
+					});
+
+					it('outside constructor', () => {
+						onAbort(() => {});
+						expect(p._abortHandler).toBeUndefined();
+					});
 				});
 
 				it('does not record _abortError', () => {
@@ -329,12 +351,26 @@ describe('new Abortable()', () => {
 					expect(p.canAbort()).toBe(true);
 				});
 
-				it('clears _abortHandler when onAbort() called before resolve()', () => {
-					const fn = () => {};
-					onAbort(fn);
-					expect(p._abortHandler).toBe(fn);
-					resolve(pInner);
-					expect(p._abortHandler).toBeUndefined();
+				describe('clears _abortHandler when onAbort() called before resolve() and onAbort() called', () => {
+					it('inside constructor', () => {
+						const fn = () => {};
+						// eslint-disable-next-line no-shadow
+						p = new Abortable((_resolve, _reject, onAbort) => {
+							resolve = _resolve;
+							onAbort(fn);
+						});
+						expect(p._abortHandler).toBe(fn);
+						resolve(pInner);
+						expect(p._abortHandler).toBeUndefined();
+					});
+
+					it('outside constructor', () => {
+						const fn = () => {};
+						onAbort(fn);
+						expect(p._abortHandler).toBe(fn);
+						resolve(pInner);
+						expect(p._abortHandler).toBeUndefined();
+					});
 				});
 
 				it('does not register _abortHandler when onAbort() called after resolve()', () => {
@@ -470,9 +506,31 @@ describe('new Abortable()', () => {
 					expect(p.canAbort()).toBe(true);
 				});
 
-				it('does not record _abortHandler', () => {
-					onAbort(() => {});
-					expect(p._abortHandler).toBeUndefined();
+				describe('does not record _abortHandler when onAbort() called', () => {
+					describe('inside constructor and onAbort() called', () => {
+						it('first', () => {
+							p = new Abortable((resolve) => {
+								onAbort(() => {});
+								resolve(pInner);
+							});
+
+							expect(p._abortHandler).toBeUndefined();
+						});
+
+						it('last', () => {
+							p = new Abortable((resolve) => {
+								resolve(pInner);
+								onAbort(() => {});
+							});
+
+							expect(p._abortHandler).toBeUndefined();
+						});
+					});
+
+					it('outside constructor', () => {
+						onAbort(() => {});
+						expect(p._abortHandler).toBeUndefined();
+					});
 				});
 
 				it('does not record _abortError', () => {
@@ -593,12 +651,26 @@ describe('new Abortable()', () => {
 					expect(p.canAbort()).toBe(true);
 				});
 
-				it('clears _abortHandler when onAbort() called before resolve()', () => {
-					const fn = () => {};
-					onAbort(fn);
-					expect(p._abortHandler).toBe(fn);
-					resolve(pInner);
-					expect(p._abortHandler).toBeUndefined();
+				describe('clears _abortHandler when onAbort() called before resolve() and onAbort() called', () => {
+					it('inside constructor', () => {
+						const fn = () => {};
+						// eslint-disable-next-line no-shadow
+						p = new Abortable((_resolve, _reject, onAbort) => {
+							resolve = _resolve;
+							onAbort(fn);
+						});
+						expect(p._abortHandler).toBe(fn);
+						resolve(pInner);
+						expect(p._abortHandler).toBeUndefined();
+					});
+
+					it('outside constructor', () => {
+						const fn = () => {};
+						onAbort(fn);
+						expect(p._abortHandler).toBe(fn);
+						resolve(pInner);
+						expect(p._abortHandler).toBeUndefined();
+					});
 				});
 
 				it('does not register _abortHandler when onAbort() called after resolve()', () => {
