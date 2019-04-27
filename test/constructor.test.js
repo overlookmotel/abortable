@@ -37,15 +37,6 @@ describe('new Abortable()', () => {
 	});
 
 	describe('throws same error as Promise constructor if executor is', () => {
-		function expectSameError(value) {
-			const err1 = tryCatch(() => new Promise(value));
-			const err2 = tryCatch(() => new Abortable(value));
-			expect(err1).toBeDefined();
-			expect(err2).toBeDefined();
-			expect(err2.name).toBe(err1.name);
-			expect(err2.message).toBe(err1.message);
-		}
-
 		it('undefined', () => { // eslint-disable-line jest/expect-expect
 			expectSameError();
 		});
@@ -69,6 +60,15 @@ describe('new Abortable()', () => {
 		it('object', () => { // eslint-disable-line jest/expect-expect
 			expectSameError({call() {}});
 		});
+
+		function expectSameError(value) {
+			const err1 = tryCatch(() => new Promise(value));
+			const err2 = tryCatch(() => new Abortable(value));
+			expect(err1).toBeDefined();
+			expect(err2).toBeDefined();
+			expect(err2.name).toBe(err1.name);
+			expect(err2.message).toBe(err1.message);
+		}
 	});
 
 	it('calls .then resolve handler if resolve() called', async () => {
@@ -787,6 +787,86 @@ describe('new Abortable()', () => {
 	});
 
 	describe('does not follow value resolve() called with when is', () => {
+		describe('Abortable which is already', () => { // eslint-disable-line jest/lowercase-name
+			describe('aborted', () => {
+				runTests({
+					setup() {
+						const p = new Abortable(() => {});
+						p.abort();
+						return {p};
+					}
+				});
+			});
+
+			describe('resolved', () => {
+				runTests({
+					setup() {
+						const p = new Abortable((resolve) => { resolve(); });
+						return {p};
+					},
+					after(p) {
+						return p;
+					}
+				});
+			});
+
+			describe('rejected', () => {
+				runTests({
+					setup() {
+						const err = new Error('err');
+						const p = new Abortable((resolve, reject) => { reject(err); });
+						noUnhandledRejection(p);
+						return {p, err};
+					},
+					afterCreatePromise(p) {
+						noUnhandledRejection(p);
+					},
+					after(p) {
+						return p.catch(() => {});
+					}
+				});
+			});
+		});
+
+		describe('Promise which is', () => { // eslint-disable-line jest/lowercase-name
+			describe('pending', () => {
+				runTests({
+					setup() {
+						const p = new Promise(() => {});
+						return {p};
+					}
+				});
+			});
+
+			describe('resolved', () => {
+				runTests({
+					setup() {
+						const p = new Promise((resolve) => { resolve(); });
+						return {p};
+					},
+					after(p) {
+						return p;
+					}
+				});
+			});
+
+			describe('rejected', () => {
+				runTests({
+					setup() {
+						const err = new Error('err');
+						const p = new Promise((resolve, reject) => { reject(err); });
+						return {p, err};
+					},
+					afterCreatePromise(p) {
+						noUnhandledRejection(p);
+					},
+					after(p) {
+						return p.catch(() => {});
+					}
+				});
+			});
+		});
+
 		function runTests({setup, afterCreatePromise, after}) {
 			describe('inside constructor', () => {
 				let p, onAbort,
@@ -914,86 +994,6 @@ describe('new Abortable()', () => {
 				});
 			});
 		}
-
-		describe('Abortable which is already', () => { // eslint-disable-line jest/lowercase-name
-			describe('aborted', () => {
-				runTests({
-					setup() {
-						const p = new Abortable(() => {});
-						p.abort();
-						return {p};
-					}
-				});
-			});
-
-			describe('resolved', () => {
-				runTests({
-					setup() {
-						const p = new Abortable((resolve) => { resolve(); });
-						return {p};
-					},
-					after(p) {
-						return p;
-					}
-				});
-			});
-
-			describe('rejected', () => {
-				runTests({
-					setup() {
-						const err = new Error('err');
-						const p = new Abortable((resolve, reject) => { reject(err); });
-						noUnhandledRejection(p);
-						return {p, err};
-					},
-					afterCreatePromise(p) {
-						noUnhandledRejection(p);
-					},
-					after(p) {
-						return p.catch(() => {});
-					}
-				});
-			});
-		});
-
-		describe('Promise which is', () => { // eslint-disable-line jest/lowercase-name
-			describe('pending', () => {
-				runTests({
-					setup() {
-						const p = new Promise(() => {});
-						return {p};
-					}
-				});
-			});
-
-			describe('resolved', () => {
-				runTests({
-					setup() {
-						const p = new Promise((resolve) => { resolve(); });
-						return {p};
-					},
-					after(p) {
-						return p;
-					}
-				});
-			});
-
-			describe('rejected', () => {
-				runTests({
-					setup() {
-						const err = new Error('err');
-						const p = new Promise((resolve, reject) => { reject(err); });
-						return {p, err};
-					},
-					afterCreatePromise(p) {
-						noUnhandledRejection(p);
-					},
-					after(p) {
-						return p.catch(() => {});
-					}
-				});
-			});
-		});
 	});
 
 	describe('onAbort()', () => {
@@ -1078,12 +1078,6 @@ describe('new Abortable()', () => {
 		});
 
 		describe('throws if not passed a function if called', () => {
-			function expectCorrectError(err) {
-				expect(err).toBeDefined();
-				expect(err).toBeInstanceOf(TypeError);
-				expect(err.message).toBe('onAbort() must be passed a function');
-			}
-
 			// eslint-disable-next-line jest/expect-expect
 			it('synchronously inside executor', () => {
 				let err;
@@ -1104,15 +1098,15 @@ describe('new Abortable()', () => {
 				const err = tryCatch(() => onAbort());
 				expectCorrectError(err);
 			});
+
+			function expectCorrectError(err) {
+				expect(err).toBeDefined();
+				expect(err).toBeInstanceOf(TypeError);
+				expect(err.message).toBe('onAbort() must be passed a function');
+			}
 		});
 
 		describe('throws if called twice when', () => {
-			function expectCorrectError(err) {
-				expect(err).toBeDefined();
-				expect(err).toBeInstanceOf(Error);
-				expect(err.message).toBe('onAbort() cannot be called twice');
-			}
-
 			// eslint-disable-next-line jest/expect-expect
 			it('both calls synchronously inside executor', () => {
 				let err;
@@ -1149,6 +1143,12 @@ describe('new Abortable()', () => {
 				const err = tryCatch(() => onAbort(() => {}));
 				expectCorrectError(err);
 			});
+
+			function expectCorrectError(err) {
+				expect(err).toBeDefined();
+				expect(err).toBeInstanceOf(Error);
+				expect(err.message).toBe('onAbort() cannot be called twice');
+			}
 		});
 	});
 });
