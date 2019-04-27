@@ -3,6 +3,9 @@
  * Tests for `.abort()` method
  * ------------------*/
 
+// TODO Remove this line
+/* eeslint-disable jest/no-focused-tests, jest/no-disabled-tests */
+
 'use strict';
 
 // Modules
@@ -325,7 +328,159 @@ describe('.abort()', () => {
 	});
 
 	describe('called on Abortable resolved with another Abortable', () => {
-		// TODO Write tests
+		let pInner, onAbortInner, abortHandlerInner;
+		beforeEach(() => {
+			pInner = new Abortable((_resolve, _reject, _onAbort) => {
+				onAbortInner = _onAbort;
+			});
+			pInner._name = 'pInner';
+			abortHandlerInner = spy();
+		});
+
+		describe('resolved inside executor', () => {
+			let p, onAbort;
+			beforeEach(() => {
+				p = new Abortable((resolve, _reject, _onAbort) => {
+					onAbort = _onAbort;
+					resolve(pInner);
+				});
+			});
+
+			describe('when onAbort() not called in outer abortable', () => {
+				runTests();
+			});
+
+			describe('when onAbort() called in outer abortable', () => {
+				beforeEach(() => {
+					onAbort(() => {});
+				});
+
+				runTests();
+			});
+
+			function runTests() {
+				describe('inner abort handler registered before abort', () => {
+					it('calls inner abort handler', () => {
+						onAbortInner(abortHandlerInner);
+						expect(abortHandlerInner).not.toHaveBeenCalled();
+
+						expect(p._canAbort).toBe(true);
+						expect(pInner._canAbort).toBe(true);
+						expect(pInner._followers).toBeArray();
+						expect(pInner._followers).toHaveLength(1);
+						expect(pInner._followers[0]).toBe(p);
+						expect(p._awaiting).toBe(pInner);
+						expect(p._unabortedCount).toBe(0);
+						expect(pInner._unabortedCount).toBe(1);
+
+						p.abort();
+						expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+					});
+				});
+
+				describe('inner abort handler registered after abort', () => {
+					it('calls inner abort handler', () => {
+						p.abort();
+						expect(abortHandlerInner).not.toHaveBeenCalled();
+						onAbortInner(abortHandlerInner);
+						expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+					});
+				});
+			}
+
+			// TODO Write more tests
+		});
+
+		describe('resolved outside executor', () => {
+			let p, resolve, onAbort;
+			beforeEach(() => {
+				p = new Abortable((_resolve, _reject, _onAbort) => {
+					resolve = _resolve;
+					onAbort = _onAbort;
+				});
+				p._name = 'p';
+			});
+
+			describe('when onAbort() not called in outer abortable', () => {
+				runTests();
+			});
+
+			describe('when onAbort() called in outer abortable', () => {
+				beforeEach(() => {
+					onAbort(() => {});
+				});
+
+				runTests();
+			});
+
+			function runTests() {
+				describe('abort() called before resolve()', () => {
+					describe('inner abort handler registered before', () => {
+						it('calls inner abort handler', () => {
+							onAbortInner(abortHandlerInner);
+							p.abort();
+							expect(abortHandlerInner).not.toHaveBeenCalled();
+							resolve(pInner);
+							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+						});
+					});
+
+					describe('inner abort handler registered between abort and resolve', () => {
+						it('calls inner abort handler', () => {
+							p.abort();
+							onAbortInner(abortHandlerInner);
+							expect(abortHandlerInner).not.toHaveBeenCalled();
+							resolve(pInner);
+							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+						});
+					});
+
+					describe('inner abort handler registered after', () => {
+						it('calls inner abort handler', () => {
+							p.abort();
+							resolve(pInner);
+							expect(abortHandlerInner).not.toHaveBeenCalled();
+							onAbortInner(abortHandlerInner);
+							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+						});
+					});
+				});
+
+				describe('abort() called after resolve()', () => {
+					describe('inner abort handler registered before', () => {
+						it('calls inner abort handler', () => {
+							onAbortInner(abortHandlerInner);
+							resolve(pInner);
+							expect(abortHandlerInner).not.toHaveBeenCalled();
+							p.abort();
+							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+						});
+					});
+
+					describe('inner abort handler registered between resolve and abort', () => {
+						it('calls inner abort handler', () => {
+							resolve(pInner);
+							onAbortInner(abortHandlerInner);
+							expect(abortHandlerInner).not.toHaveBeenCalled();
+							p.abort();
+							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+						});
+					});
+
+					describe('inner abort handler registered after', () => {
+						it('calls inner abort handler', () => {
+							resolve(pInner);
+							p.abort();
+							expect(abortHandlerInner).not.toHaveBeenCalled();
+							onAbortInner(abortHandlerInner);
+							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+						});
+					});
+				});
+			}
+
+			// TODO Write more tests
+		});
 	});
 
 	describe('called on Abortable resolved with abortable object', () => {
