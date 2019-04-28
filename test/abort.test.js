@@ -362,16 +362,6 @@ describe('.abort()', () => {
 					it('calls inner abort handler', () => {
 						onAbortInner(abortHandlerInner);
 						expect(abortHandlerInner).not.toHaveBeenCalled();
-
-						expect(p._canAbort).toBe(true);
-						expect(pInner._canAbort).toBe(true);
-						expect(pInner._followers).toBeArray();
-						expect(pInner._followers).toHaveLength(1);
-						expect(pInner._followers[0]).toBe(p);
-						expect(p._awaiting).toBe(pInner);
-						expect(p._unabortedCount).toBe(0);
-						expect(pInner._unabortedCount).toBe(1);
-
 						p.abort();
 						expect(abortHandlerInner).toHaveBeenCalledTimes(1);
 					});
