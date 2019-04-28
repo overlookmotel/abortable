@@ -367,6 +367,26 @@ describe('.abort()', () => {
 						expect(abortHandlerInner).toHaveBeenCalledTimes(1);
 						expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 					});
+
+					it('clears inner _abortHandler', () => {
+						onAbortInner(abortHandlerInner);
+						expect(pInner._abortHandler).toBe(abortHandlerInner);
+						p.abort(abortErr);
+						expect(pInner._abortHandler).toBeUndefined();
+					});
+
+					it('does not set outer _abortError', () => {
+						onAbortInner(abortHandlerInner);
+						p.abort(abortErr);
+						expect(p._abortError).toBeUndefined();
+					});
+
+					it('sets inner _abortError', () => {
+						onAbortInner(abortHandlerInner);
+						expect(pInner._abortError).toBeUndefined();
+						p.abort(abortErr);
+						expect(pInner._abortError).toBe(abortErr);
+					});
 				});
 
 				describe('inner abort handler registered after abort', () => {
@@ -376,6 +396,25 @@ describe('.abort()', () => {
 						onAbortInner(abortHandlerInner);
 						expect(abortHandlerInner).toHaveBeenCalledTimes(1);
 						expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
+					});
+
+					it('does not set inner _abortHandler', () => {
+						p.abort(abortErr);
+						onAbortInner(abortHandlerInner);
+						expect(pInner._abortHandler).toBeUndefined();
+					});
+
+					it('does not set outer _abortError', () => {
+						p.abort(abortErr);
+						onAbortInner(abortHandlerInner);
+						expect(p._abortError).toBeUndefined();
+					});
+
+					it('sets inner _abortError', () => {
+						expect(pInner._abortError).toBeUndefined();
+						p.abort(abortErr);
+						onAbortInner(abortHandlerInner);
+						expect(pInner._abortError).toBe(abortErr);
 					});
 				});
 			}
@@ -415,6 +454,29 @@ describe('.abort()', () => {
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
 							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 						});
+
+						it('clears inner _abortHandler', () => {
+							onAbortInner(abortHandlerInner);
+							p.abort(abortErr);
+							expect(pInner._abortHandler).toBe(abortHandlerInner);
+							resolve(pInner);
+							expect(pInner._abortHandler).toBeUndefined();
+						});
+
+						it('does not set outer _abortError', () => {
+							onAbortInner(abortHandlerInner);
+							p.abort(abortErr);
+							resolve(pInner);
+							expect(p._abortError).toBeUndefined();
+						});
+
+						it('sets inner _abortError', () => {
+							onAbortInner(abortHandlerInner);
+							expect(pInner._abortError).toBeUndefined();
+							p.abort(abortErr);
+							resolve(pInner);
+							expect(pInner._abortError).toBe(abortErr);
+						});
 					});
 
 					describe('inner abort handler registered between abort and resolve', () => {
@@ -426,6 +488,29 @@ describe('.abort()', () => {
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
 							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 						});
+
+						it('clears inner _abortHandler', () => {
+							p.abort(abortErr);
+							onAbortInner(abortHandlerInner);
+							expect(pInner._abortHandler).toBe(abortHandlerInner);
+							resolve(pInner);
+							expect(pInner._abortHandler).toBeUndefined();
+						});
+
+						it('does not set outer _abortError', () => {
+							p.abort(abortErr);
+							onAbortInner(abortHandlerInner);
+							resolve(pInner);
+							expect(p._abortError).toBeUndefined();
+						});
+
+						it('sets inner _abortError', () => {
+							p.abort(abortErr);
+							onAbortInner(abortHandlerInner);
+							expect(pInner._abortError).toBeUndefined();
+							resolve(pInner);
+							expect(pInner._abortError).toBe(abortErr);
+						});
 					});
 
 					describe('inner abort handler registered after', () => {
@@ -436,6 +521,28 @@ describe('.abort()', () => {
 							onAbortInner(abortHandlerInner);
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
 							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
+						});
+
+						it('does not set inner _abortHandler', () => {
+							p.abort(abortErr);
+							resolve(pInner);
+							onAbortInner(abortHandlerInner);
+							expect(pInner._abortHandler).toBeUndefined();
+						});
+
+						it('does not set outer _abortError', () => {
+							p.abort(abortErr);
+							resolve(pInner);
+							onAbortInner(abortHandlerInner);
+							expect(p._abortError).toBeUndefined();
+						});
+
+						it('sets inner _abortError', () => {
+							p.abort(abortErr);
+							expect(pInner._abortError).toBeUndefined();
+							resolve(pInner);
+							onAbortInner(abortHandlerInner);
+							expect(pInner._abortError).toBe(abortErr);
 						});
 					});
 				});
@@ -450,6 +557,29 @@ describe('.abort()', () => {
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
 							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 						});
+
+						it('clears inner _abortHandler', () => {
+							onAbortInner(abortHandlerInner);
+							resolve(pInner);
+							expect(pInner._abortHandler).toBe(abortHandlerInner);
+							p.abort(abortErr);
+							expect(pInner._abortHandler).toBeUndefined();
+						});
+
+						it('does not set outer _abortError', () => {
+							onAbortInner(abortHandlerInner);
+							resolve(pInner);
+							p.abort(abortErr);
+							expect(p._abortError).toBeUndefined();
+						});
+
+						it('sets inner _abortError', () => {
+							onAbortInner(abortHandlerInner);
+							resolve(pInner);
+							expect(pInner._abortError).toBeUndefined();
+							p.abort(abortErr);
+							expect(pInner._abortError).toBe(abortErr);
+						});
 					});
 
 					describe('inner abort handler registered between resolve and abort', () => {
@@ -461,6 +591,29 @@ describe('.abort()', () => {
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
 							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 						});
+
+						it('clears inner _abortHandler', () => {
+							resolve(pInner);
+							onAbortInner(abortHandlerInner);
+							expect(pInner._abortHandler).toBe(abortHandlerInner);
+							p.abort(abortErr);
+							expect(pInner._abortHandler).toBeUndefined();
+						});
+
+						it('does not set outer _abortError', () => {
+							resolve(pInner);
+							onAbortInner(abortHandlerInner);
+							p.abort(abortErr);
+							expect(p._abortError).toBeUndefined();
+						});
+
+						it('sets inner _abortError', () => {
+							resolve(pInner);
+							onAbortInner(abortHandlerInner);
+							expect(pInner._abortError).toBeUndefined();
+							p.abort(abortErr);
+							expect(pInner._abortError).toBe(abortErr);
+						});
 					});
 
 					describe('inner abort handler registered after', () => {
@@ -471,6 +624,28 @@ describe('.abort()', () => {
 							onAbortInner(abortHandlerInner);
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
 							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
+						});
+
+						it('does not set inner _abortHandler', () => {
+							resolve(pInner);
+							p.abort(abortErr);
+							onAbortInner(abortHandlerInner);
+							expect(pInner._abortHandler).toBeUndefined();
+						});
+
+						it('does not set outer _abortError', () => {
+							resolve(pInner);
+							p.abort(abortErr);
+							onAbortInner(abortHandlerInner);
+							expect(p._abortError).toBeUndefined();
+						});
+
+						it('sets inner _abortError', () => {
+							resolve(pInner);
+							expect(pInner._abortError).toBeUndefined();
+							p.abort(abortErr);
+							onAbortInner(abortHandlerInner);
+							expect(pInner._abortError).toBe(abortErr);
 						});
 					});
 				});
