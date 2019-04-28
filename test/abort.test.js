@@ -328,12 +328,13 @@ describe('.abort()', () => {
 	});
 
 	describe('called on Abortable resolved with another Abortable', () => {
-		let pInner, onAbortInner, abortHandlerInner;
+		let pInner, onAbortInner, abortHandlerInner, abortErr;
 		beforeEach(() => {
 			pInner = new Abortable((_resolve, _reject, _onAbort) => {
 				onAbortInner = _onAbort;
 			});
 			abortHandlerInner = spy();
+			abortErr = new Error('err');
 		});
 
 		describe('resolved inside executor', () => {
@@ -362,17 +363,19 @@ describe('.abort()', () => {
 					it('calls inner abort handler', () => {
 						onAbortInner(abortHandlerInner);
 						expect(abortHandlerInner).not.toHaveBeenCalled();
-						p.abort();
+						p.abort(abortErr);
 						expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+						expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 					});
 				});
 
 				describe('inner abort handler registered after abort', () => {
 					it('calls inner abort handler', () => {
-						p.abort();
+						p.abort(abortErr);
 						expect(abortHandlerInner).not.toHaveBeenCalled();
 						onAbortInner(abortHandlerInner);
 						expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+						expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 					});
 				});
 			}
@@ -406,30 +409,33 @@ describe('.abort()', () => {
 					describe('inner abort handler registered before', () => {
 						it('calls inner abort handler', () => {
 							onAbortInner(abortHandlerInner);
-							p.abort();
+							p.abort(abortErr);
 							expect(abortHandlerInner).not.toHaveBeenCalled();
 							resolve(pInner);
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 						});
 					});
 
 					describe('inner abort handler registered between abort and resolve', () => {
 						it('calls inner abort handler', () => {
-							p.abort();
+							p.abort(abortErr);
 							onAbortInner(abortHandlerInner);
 							expect(abortHandlerInner).not.toHaveBeenCalled();
 							resolve(pInner);
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 						});
 					});
 
 					describe('inner abort handler registered after', () => {
 						it('calls inner abort handler', () => {
-							p.abort();
+							p.abort(abortErr);
 							resolve(pInner);
 							expect(abortHandlerInner).not.toHaveBeenCalled();
 							onAbortInner(abortHandlerInner);
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 						});
 					});
 				});
@@ -440,8 +446,9 @@ describe('.abort()', () => {
 							onAbortInner(abortHandlerInner);
 							resolve(pInner);
 							expect(abortHandlerInner).not.toHaveBeenCalled();
-							p.abort();
+							p.abort(abortErr);
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 						});
 					});
 
@@ -450,18 +457,20 @@ describe('.abort()', () => {
 							resolve(pInner);
 							onAbortInner(abortHandlerInner);
 							expect(abortHandlerInner).not.toHaveBeenCalled();
-							p.abort();
+							p.abort(abortErr);
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 						});
 					});
 
 					describe('inner abort handler registered after', () => {
 						it('calls inner abort handler', () => {
 							resolve(pInner);
-							p.abort();
+							p.abort(abortErr);
 							expect(abortHandlerInner).not.toHaveBeenCalled();
 							onAbortInner(abortHandlerInner);
 							expect(abortHandlerInner).toHaveBeenCalledTimes(1);
+							expect(abortHandlerInner).toHaveBeenCalledWith(abortErr);
 						});
 					});
 				});
