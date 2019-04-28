@@ -333,7 +333,6 @@ describe('.abort()', () => {
 			pInner = new Abortable((_resolve, _reject, _onAbort) => {
 				onAbortInner = _onAbort;
 			});
-			pInner._name = 'pInner';
 			abortHandlerInner = spy();
 		});
 
@@ -398,7 +397,6 @@ describe('.abort()', () => {
 					resolve = _resolve;
 					onAbort = _onAbort;
 				});
-				p._name = 'p';
 			});
 
 			describe('when onAbort() not called in outer abortable', () => {
