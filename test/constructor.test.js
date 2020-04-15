@@ -8,8 +8,11 @@
 // Modules
 const Abortable = require('../index.js');
 
+// Imports
+const {spy, tryCatch, tick, noUnhandledRejection} = require('./support/utils.js');
+
 // Init
-const {spy, tryCatch, tick, noUnhandledRejection} = require('./utils/index.js');
+require('./support/index.js');
 
 // Tests
 

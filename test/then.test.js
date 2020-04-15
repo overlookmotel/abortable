@@ -9,7 +9,7 @@
 const Abortable = require('../index.js');
 
 // Init
-require('./utils/index.js');
+require('./support/index.js');
 
 // Tests
 
