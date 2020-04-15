@@ -6,7 +6,7 @@
 'use strict';
 
 // Modules
-const Abortable = require('../index.js');
+const Abortable = require('abortable');
 
 // Imports
 const {spy, tryCatch, tick, noUnhandledRejection} = require('./support/utils.js');

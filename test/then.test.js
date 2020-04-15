@@ -6,7 +6,7 @@
 'use strict';
 
 // Modules
-const Abortable = require('../index.js');
+const Abortable = require('abortable');
 
 // Init
 require('./support/index.js');

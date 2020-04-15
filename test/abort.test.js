@@ -9,7 +9,7 @@
 'use strict';
 
 // Modules
-const Abortable = require('../index.js');
+const Abortable = require('abortable');
 
 // Imports
 const {spy, tick} = require('./support/utils.js');
