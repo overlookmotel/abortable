@@ -7,5 +7,4 @@ coverage
 .eslintrc.js
 .npmignore
 .travis.yml
-npm-debug.log
 jest.config.js
