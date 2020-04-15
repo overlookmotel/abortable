@@ -9,10 +9,10 @@
 'use strict';
 
 // Modules
-const Abortable = require('../index');
+const Abortable = require('../index.js');
 
 // Init
-const {spy, tick} = require('./utils');
+const {spy, tick} = require('./utils/index.js');
 
 // Tests
 

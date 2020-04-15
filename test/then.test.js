@@ -6,10 +6,10 @@
 'use strict';
 
 // Modules
-const Abortable = require('../index');
+const Abortable = require('../index.js');
 
 // Init
-require('./utils');
+require('./utils/index.js');
 
 // Tests
 
