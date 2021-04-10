@@ -20,7 +20,6 @@
     "@overlookmotel/eslint-config": "^7.2.1",
     "@overlookmotel/eslint-config-jest": "^4.1.1",
     "@overlookmotel/eslint-config-node": "^2.1.2",
-    "coveralls": "^3.1.0",
     "cross-env": "^7.0.3",
     "eslint": "^7.24.0",
     "eslint-config-airbnb-base": "^14.2.1",
@@ -48,9 +47,7 @@
     "lint-fix": "eslint '*.js' '.*.js' '**/*.js' '**/.*.js' --fix",
     "test-main": "cross-env NODE_ENV=production jest",
     "cover": "npm run cover-main && rm -rf coverage",
-    "coveralls": "npm run cover-main && cat ./coverage/lcov.info | coveralls && rm -rf ./coverage",
-    "cover-main": "cross-env COVERAGE=true NODE_ENV=production jest --coverage",
-    "ci": "if [ $COVERAGE ]; then npm run coveralls; else npm test; fi"
+    "cover-main": "cross-env COVERAGE=true NODE_ENV=production jest --coverage"
   },
   "engines": {
     "node": ">=10"
