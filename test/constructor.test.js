@@ -1103,8 +1103,7 @@ describe('new Abortable()', () => {
 			});
 
 			function expectCorrectError(err) {
-				expect(err).toBeDefined();
-				expect(err).toBeInstanceOf(TypeError);
+				expect(err).toBeInstanceOf(Error);
 				expect(err.message).toBe('onAbort() must be passed a function');
 			}
 		});

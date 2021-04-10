@@ -14,7 +14,8 @@
     "url": "https://github.com/overlookmotel/abortable/issues"
   },
   "dependencies": {
-    "debug": "^4.3.1"
+    "debug": "^4.3.1",
+    "simple-invariant": "^2.0.1"
   },
   "devDependencies": {
     "@overlookmotel/eslint-config": "^7.2.1",
