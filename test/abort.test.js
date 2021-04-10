@@ -3,9 +3,6 @@
  * Tests for `.abort()` method
  * ------------------*/
 
-// TODO Remove this line
-/* eeslint-disable jest/no-focused-tests, jest/no-disabled-tests */
-
 'use strict';
 
 // Modules
