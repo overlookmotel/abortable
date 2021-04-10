@@ -8,7 +8,6 @@
 [![Build Status](https://img.shields.io/github/workflow/status/overlookmotel/abortable/Test.svg)](https://github.com/overlookmotel/abortable/actions)
 [![Dependency Status](https://img.shields.io/david/overlookmotel/abortable.svg)](https://david-dm.org/overlookmotel/abortable)
 [![Dev dependency Status](https://img.shields.io/david/dev/overlookmotel/abortable.svg)](https://david-dm.org/overlookmotel/abortable)
-[![Greenkeeper badge](https://badges.greenkeeper.io/overlookmotel/abortable.svg)](https://greenkeeper.io/)
 [![Coverage Status](https://img.shields.io/coveralls/overlookmotel/abortable/master.svg)](https://coveralls.io/r/overlookmotel/abortable)
 
 ## What is an abortable?
