@@ -67,8 +67,8 @@ describe('new Abortable()', () => {
 		function expectSameError(value) {
 			const err1 = tryCatch(() => new Promise(value));
 			const err2 = tryCatch(() => new Abortable(value));
-			expect(err1).toBeDefined();
-			expect(err2).toBeDefined();
+			expect(err1).toBeInstanceOf(Error);
+			expect(err1).toBeInstanceOf(Error);
 			expect(err2.name).toBe(err1.name);
 			expect(err2.message).toBe(err1.message);
 		}
@@ -1147,7 +1147,6 @@ describe('new Abortable()', () => {
 			});
 
 			function expectCorrectError(err) {
-				expect(err).toBeDefined();
 				expect(err).toBeInstanceOf(Error);
 				expect(err.message).toBe('onAbort() cannot be called twice');
 			}
