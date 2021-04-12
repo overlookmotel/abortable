@@ -68,7 +68,8 @@ describe('new Abortable()', () => {
 			const err1 = tryCatch(() => new Promise(value));
 			const err2 = tryCatch(() => new Abortable(value));
 			expect(err1).toBeInstanceOf(Error);
-			expect(err1).toBeInstanceOf(Error);
+			expect(err2).toBeInstanceOf(Error);
+			expect(Object.getPrototypeOf(err2)).toBe(Object.getPrototypeOf(err1));
 			expect(err2.name).toBe(err1.name);
 			expect(err2.message).toBe(err1.message);
 		}
