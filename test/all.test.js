@@ -43,6 +43,7 @@ describe('Abortable.all', () => {
 	});
 
 	// TODO Tests for normal behaviour with valid iterables
+	// TODO Test sync abort does not abort promises which are already followed elsewhere
 
 	describe('when passed non-iterable, returns Abortable which is', () => {
 		let p;
