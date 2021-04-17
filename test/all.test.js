@@ -10,7 +10,7 @@
 // Imports
 const {
 	runTestsWithAbortableAndPromise, createItWithSetupAndTeardown,
-	getRejectionReason, promiseStatus, isNode10
+	noUnhandledRejection, getRejectionReason, promiseStatus, tick, spy, isNode10
 } = require('./support/utils.js');
 
 // Init
@@ -352,10 +352,160 @@ describe('Abortable.all', () => {
 		}
 	});
 
-	// TODO Tests for thenables with getter on `.then` property which throws
+	describe('when thenable getter for `.then` property throws', () => {
+		describe('on first iteration', () => {
+			runTests(() => {
+				const err = new Error('then getter error');
+				const finalThen = spy(() => {});
+				const iterable = [
+					{get then() { throw err; }},
+					2,
+					3,
+					4,
+					5,
+					{then: finalThen}
+				];
+				return {err, iterable, finalThen};
+			});
+		});
+
+		describe('on later iteration', () => {
+			runTests(() => {
+				const err = new Error('then getter error');
+				const finalThen = spy(() => {});
+				const iterable = [
+					1,
+					2,
+					{get then() { throw err; }},
+					4,
+					5,
+					{then: finalThen}
+				];
+				return {err, iterable, finalThen};
+			});
+		});
+
+		function runTests(createIterableAndError) {
+			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+				const itWithSetup = createItWithSetupAndTeardown({
+					setup() {
+						const {err, iterable, finalThen} = createIterableAndError();
+						const p = PromiseOrAbortable.all(iterable);
+						return {p, expectedErr: err, finalThen};
+					},
+					async teardown({p}) {
+						await p.catch(() => {});
+					}
+				});
+
+				describe(`returns ${className} which is`, () => {
+					itWithSetup(`${className} instance`, ({p}) => {
+						expect(p).toBeInstanceOf(PromiseOrAbortable);
+					});
+
+					itWithSetup('pending', ({p}) => {
+						expect(p).toBePendingPromise();
+					});
+
+					itWithSetup('rejected with thrown error', async ({p, expectedErr}) => {
+						const err = await getRejectionReason(p);
+						expect(err).toBe(expectedErr);
+					});
+
+					if (isAbortable) {
+						itWithSetup('abortable', ({p}) => {
+							expect(p.canAbort()).toBeTrue();
+						});
+					}
+				});
+
+				itWithSetup('continues iteration', async ({p, finalThen}) => {
+					noUnhandledRejection(p);
+					await tick();
+					expect(finalThen).toHaveBeenCalledTimes(1);
+				});
+			});
+		}
+	});
+
+	describe('when thenable `.then()` method throws', () => {
+		describe('on first iteration', () => {
+			runTests(() => {
+				const err = new Error('then error');
+				const finalThen = spy(() => {});
+				const iterable = [
+					{then() { throw err; }},
+					2,
+					3,
+					4,
+					5,
+					{then: finalThen}
+				];
+				return {err, iterable, finalThen};
+			});
+		});
+
+		describe('on later iteration', () => {
+			runTests(() => {
+				const err = new Error('then error');
+				const finalThen = spy(() => {});
+				const iterable = [
+					1,
+					2,
+					{then() { throw err; }},
+					4,
+					5,
+					{then: finalThen}
+				];
+				return {err, iterable, finalThen};
+			});
+		});
+
+		function runTests(createIterableAndError) {
+			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+				const itWithSetup = createItWithSetupAndTeardown({
+					setup() {
+						const {err, iterable, finalThen} = createIterableAndError();
+						const p = PromiseOrAbortable.all(iterable);
+						return {p, expectedErr: err, finalThen};
+					},
+					async teardown({p}) {
+						await p.catch(() => {});
+					}
+				});
+
+				describe(`returns ${className} which is`, () => {
+					itWithSetup(`${className} instance`, ({p}) => {
+						expect(p).toBeInstanceOf(PromiseOrAbortable);
+					});
+
+					itWithSetup('pending', ({p}) => {
+						expect(p).toBePendingPromise();
+					});
+
+					itWithSetup('rejected with thrown error', async ({p, expectedErr}) => {
+						const err = await getRejectionReason(p);
+						expect(err).toBe(expectedErr);
+					});
+
+					if (isAbortable) {
+						itWithSetup('abortable', ({p}) => {
+							expect(p.canAbort()).toBeTrue();
+						});
+					}
+				});
+
+				itWithSetup('continues iteration', async ({p, finalThen}) => {
+					noUnhandledRejection(p);
+					await tick();
+					expect(finalThen).toHaveBeenCalledTimes(1);
+				});
+			});
+		}
+	});
+
 	// TODO Tests for thenables with getter on `.abort` property which throws
 	// TODO Tests for thenables with getter on `[IS_ABORTABLE]` property which throws
-	// TODO Tests for thenables with `.then` method which throws
 	// TODO Tests that `.then` getter called only once
 	// TODO Tests that `.then()` called only once
 	// TODO Tests for timing for thenables which call callback async
