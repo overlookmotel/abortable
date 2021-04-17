@@ -178,7 +178,7 @@ describe('Abortable.all', () => {
 		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 			const itWithSetup = createItWithSetupAndTeardown({
 				setup() {
-					const err = new Error('foo');
+					const err = new Error('iterator error');
 					const iterable = {
 						[Symbol.iterator]() {
 							throw err;
@@ -283,7 +283,7 @@ describe('Abortable.all', () => {
 	describe('when passed iterable returning iterator with `.next()` method that throws', () => {
 		describe('on first iteration, returns Abortable which is', () => {
 			runTests(() => {
-				const err = new Error('foo');
+				const err = new Error('next error');
 				const iterable = {
 					[Symbol.iterator]() {
 						return {
@@ -293,13 +293,13 @@ describe('Abortable.all', () => {
 						};
 					}
 				};
-				return {err, iterable};
+				return {iterable, err};
 			});
 		});
 
 		describe('on later iteration, returns Abortable which is', () => {
 			runTests(() => {
-				const err = new Error('foo');
+				const err = new Error('next error');
 				const iterable = {
 					[Symbol.iterator]() {
 						let count = 0;
@@ -311,7 +311,7 @@ describe('Abortable.all', () => {
 						};
 					}
 				};
-				return {err, iterable};
+				return {iterable, err};
 			});
 		});
 
@@ -319,7 +319,7 @@ describe('Abortable.all', () => {
 			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 				const itWithSetup = createItWithSetupAndTeardown({
 					setup() {
-						const {err, iterable} = createIterableAndError();
+						const {iterable, err} = createIterableAndError();
 						const p = PromiseOrAbortable.all(iterable);
 						return {p, expectedErr: err};
 					},
