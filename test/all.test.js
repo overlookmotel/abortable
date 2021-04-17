@@ -5,245 +5,218 @@
 
 'use strict';
 
-// Modules
-const Abortable = require('abortable'),
-	parseNodeVersion = require('parse-node-version');
+/* eslint jest/no-standalone-expect: ["error", { "additionalTestBlockFunctions": ["itWithSetup"] }] */
 
 // Imports
-const {noUnhandledRejection, getRejectionReason, promiseStatus} = require('./support/utils.js');
+const {
+	runTestsWithAbortableAndPromise, createItWithSetupAndTeardown,
+	getRejectionReason, promiseStatus, isNode10
+} = require('./support/utils.js');
 
 // Init
 require('./support/index.js');
 
 // Tests
 
-const isNode10 = parseNodeVersion(process.version).major === 10;
-
 describe('Abortable.all', () => {
-	it('returns Abortable', () => {
-		const p = Abortable.all([]);
-		expect(p).toBeInstanceOf(Abortable);
-	});
+	describe('when passed empty array', () => {
+		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			const itWithSetup = createItWithSetupAndTeardown({
+				setup() {
+					const p = PromiseOrAbortable.all([]);
+					return {p};
+				}
+			});
 
-	describe('when passed empty array, returns Abortable which is', () => {
-		it('already resolved', () => {
-			const p = Abortable.all([]);
-			expect(p).toBeResolvedPromise();
-		});
+			describe(`returns ${className} which is`, () => {
+				itWithSetup(`${className} class instance`, ({p}) => {
+					expect(p).toBeInstanceOf(PromiseOrAbortable);
+				});
 
-		it('already resolved, same as Promise', () => {
-			const p = Promise.all([]);
-			expect(p).toBeResolvedPromise();
-		});
+				itWithSetup('already resolved', ({p}) => {
+					expect(p).toBeResolvedPromise();
+				});
 
-		it('not abortable', () => {
-			const p = Abortable.all([]);
-			expect(p.canAbort()).toBeFalse();
+				if (isAbortable) {
+					itWithSetup('not abortable', ({p}) => {
+						expect(p.canAbort()).toBeFalse();
+					});
+				}
+			});
 		});
 	});
 
 	// TODO Tests for normal behaviour with valid iterables
 	// TODO Test sync abort does not abort promises which are already followed elsewhere
 
-	describe('when passed non-iterable, returns Abortable which is', () => {
-		let p;
-		beforeEach(() => {
-			p = Abortable.all(undefined);
-		});
-		afterEach(() => {
-			noUnhandledRejection(p);
-		});
+	describe('when passed non-iterable', () => {
+		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			const itWithSetup = createItWithSetupAndTeardown({
+				setup() {
+					const p = PromiseOrAbortable.all(undefined);
+					return {p};
+				},
+				async teardown({p}) {
+					await p.catch(() => {});
+				}
+			});
 
-		it('Abortable instance', () => { // eslint-disable-line jest/lowercase-name
-			expect(p).toBeInstanceOf(Abortable);
-		});
+			describe(`returns ${className} which is`, () => {
+				itWithSetup(`${className} class instance`, ({p}) => {
+					expect(p).toBeInstanceOf(PromiseOrAbortable);
+				});
 
-		it('already rejected', () => {
-			expect(p).toBeRejectedPromise();
-		});
+				itWithSetup('already rejected', ({p}) => {
+					expect(p).toBeRejectedPromise();
+				});
 
-		it('already rejected, same as Promise', () => {
-			const p2 = Promise.all(undefined);
-			expect(p2).toBeRejectedPromise();
-			noUnhandledRejection(p2);
-		});
+				itWithSetup('rejected with TypeError', async ({p}) => {
+					const err = await getRejectionReason(p);
+					expect(err).toBeInstanceOf(TypeError);
+					expect(err.message).toBe(
+						isAbortable // eslint-disable-line no-nested-ternary
+							? 'iterable is not iterable'
+							: isNode10
+								? "Cannot read property 'Symbol(Symbol.iterator)' of undefined"
+								: 'undefined is not iterable (cannot read property Symbol(Symbol.iterator))'
+					);
+				});
 
-		it('rejected with TypeError', async () => {
-			const err = await getRejectionReason(p);
-			expect(err).toBeInstanceOf(TypeError);
-			expect(err.message).toBe('iterable is not iterable');
-		});
-
-		it('rejected with TypeError, same as Promise', async () => {
-			const p2 = Promise.all(undefined);
-			const err = await getRejectionReason(p2);
-			expect(err).toBeInstanceOf(TypeError);
-			expect(err.message).toBe(
-				isNode10
-					? "Cannot read property 'Symbol(Symbol.iterator)' of undefined"
-					: 'undefined is not iterable (cannot read property Symbol(Symbol.iterator))'
-			);
-		});
-
-		it('not abortable', () => {
-			expect(p.canAbort()).toBeFalse();
+				if (isAbortable) {
+					itWithSetup('not abortable', ({p}) => {
+						expect(p.canAbort()).toBeFalse();
+					});
+				}
+			});
 		});
 	});
 
-	describe('when passed non-iterable object, returns Abortable which is', () => {
-		let p;
-		beforeEach(() => {
-			p = Abortable.all({});
-		});
-		afterEach(() => {
-			noUnhandledRejection(p);
-		});
+	describe('when passed non-iterable object', () => {
+		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			const itWithSetup = createItWithSetupAndTeardown({
+				setup() {
+					const p = PromiseOrAbortable.all({});
+					return {p};
+				},
+				async teardown({p}) {
+					await p.catch(() => {});
+				}
+			});
 
-		it('Abortable instance', () => { // eslint-disable-line jest/lowercase-name
-			expect(p).toBeInstanceOf(Abortable);
-		});
+			describe(`returns ${className} which is`, () => {
+				itWithSetup(`${className} class instance`, ({p}) => {
+					expect(p).toBeInstanceOf(PromiseOrAbortable);
+				});
 
-		it('already rejected', () => {
-			expect(p).toBeRejectedPromise();
-		});
+				itWithSetup('already rejected', ({p}) => {
+					expect(p).toBeRejectedPromise();
+				});
 
-		it('already rejected, same as Promise', () => {
-			const p2 = Promise.all({});
-			expect(p2).toBeRejectedPromise();
-			noUnhandledRejection(p2);
-		});
+				itWithSetup('rejected with TypeError', async ({p}) => {
+					const err = await getRejectionReason(p);
+					expect(err).toBeInstanceOf(TypeError);
+					expect(err.message).toBe(
+						isAbortable // eslint-disable-line no-nested-ternary
+							? 'iterable is not iterable'
+							: isNode10
+								? '#<Object> is not iterable'
+								: 'object is not iterable (cannot read property Symbol(Symbol.iterator))'
+					);
+				});
 
-		it('rejected with TypeError', async () => {
-			const err = await getRejectionReason(p);
-			expect(err).toBeInstanceOf(TypeError);
-			expect(err.message).toBe('iterable is not iterable');
-		});
-
-		it('rejected with TypeError, same as Promise', async () => {
-			const p2 = Promise.all({});
-			const err = await getRejectionReason(p2);
-			expect(err).toBeInstanceOf(TypeError);
-			expect(err.message).toBe(
-				isNode10
-					? '#<Object> is not iterable'
-					: 'object is not iterable (cannot read property Symbol(Symbol.iterator))'
-			);
-		});
-
-		it('not abortable', () => {
-			expect(p.canAbort()).toBeFalse();
+				if (isAbortable) {
+					itWithSetup('not abortable', ({p}) => {
+						expect(p.canAbort()).toBeFalse();
+					});
+				}
+			});
 		});
 	});
 
-	describe(
-		'when passed iterable with `[Symbol.iterator]()` method that returns invalid iterator, returns Abortable which is',
-		() => {
-			function createIterable() {
-				return {
-					[Symbol.iterator]() {
-						return {};
-					}
-				};
-			}
-
-			let p;
-			beforeEach(() => {
-				p = Abortable.all(createIterable());
-			});
-			afterEach(() => {
-				noUnhandledRejection(p);
+	describe('when passed iterable with `[Symbol.iterator]()` method that returns invalid iterator', () => {
+		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			const itWithSetup = createItWithSetupAndTeardown({
+				setup() {
+					const iterable = {
+						[Symbol.iterator]() {
+							return {};
+						}
+					};
+					const p = PromiseOrAbortable.all(iterable);
+					return {p};
+				},
+				async teardown({p}) {
+					await p.catch(() => {});
+				}
 			});
 
-			it('Abortable instance', () => { // eslint-disable-line jest/lowercase-name
-				expect(p).toBeInstanceOf(Abortable);
+			describe(`returns ${className} which is`, () => {
+				itWithSetup(`${className} class instance`, ({p}) => {
+					expect(p).toBeInstanceOf(PromiseOrAbortable);
+				});
+
+				itWithSetup('already rejected', ({p}) => {
+					expect(p).toBeRejectedPromise();
+				});
+
+				itWithSetup('rejected with TypeError', async ({p}) => {
+					const err = await getRejectionReason(p);
+					expect(err).toBeInstanceOf(TypeError);
+					expect(err.message).toBe('undefined is not a function');
+				});
+
+				if (isAbortable) {
+					itWithSetup('not abortable', ({p}) => {
+						expect(p.canAbort()).toBeFalse();
+					});
+				}
+			});
+		});
+	});
+
+	describe('when passed iterable with `[Symbol.iterator]()` method that throws', () => {
+		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			const itWithSetup = createItWithSetupAndTeardown({
+				setup() {
+					const err = new Error('foo');
+					const iterable = {
+						[Symbol.iterator]() {
+							throw err;
+						}
+					};
+					const p = PromiseOrAbortable.all(iterable);
+					return {p, expectedErr: err};
+				},
+				async teardown({p}) {
+					await p.catch(() => {});
+				}
 			});
 
-			it('already rejected', () => {
-				expect(p).toBeRejectedPromise();
-			});
+			describe(`returns ${className} which is`, () => {
+				itWithSetup(`${className} class instance`, ({p}) => {
+					expect(p).toBeInstanceOf(PromiseOrAbortable);
+				});
 
-			it('already rejected, same as Promise', () => {
-				const p2 = Promise.all(createIterable());
-				expect(p2).toBeRejectedPromise();
-				noUnhandledRejection(p2);
-			});
+				itWithSetup('already rejected', ({p}) => {
+					expect(p).toBeRejectedPromise();
+				});
 
-			it('rejected with TypeError', async () => {
-				const err = await getRejectionReason(p);
-				expect(err).toBeInstanceOf(TypeError);
-				expect(err.message).toBe('undefined is not a function');
-			});
+				itWithSetup('rejected with thrown error', async ({p, expectedErr}) => {
+					const err = await getRejectionReason(p);
+					expect(err).toBe(expectedErr);
+				});
 
-			it('rejected with TypeError, same as Promise', async () => {
-				const p2 = Promise.all(createIterable());
-				const err = await getRejectionReason(p2);
-				expect(err).toBeInstanceOf(TypeError);
-				expect(err.message).toBe('undefined is not a function');
+				if (isAbortable) {
+					itWithSetup('not abortable', ({p}) => {
+						expect(p.canAbort()).toBeFalse();
+					});
+				}
 			});
-
-			it('not abortable', () => {
-				expect(p.canAbort()).toBeFalse();
-			});
-		}
-	);
-
-	describe(
-		'when passed iterable with `[Symbol.iterator]()` method that throws, returns Abortable which is',
-		() => {
-			function createIterableAndError() {
-				const err = new Error('foo');
-				const iterable = {
-					[Symbol.iterator]() {
-						throw err;
-					}
-				};
-				return {err, iterable};
-			}
-
-			let p, expectedErr;
-			beforeEach(() => {
-				const {err, iterable} = createIterableAndError();
-				expectedErr = err;
-				p = Abortable.all(iterable);
-			});
-			afterEach(() => {
-				noUnhandledRejection(p);
-			});
-
-			it('Abortable instance', () => { // eslint-disable-line jest/lowercase-name
-				expect(p).toBeInstanceOf(Abortable);
-			});
-
-			it('already rejected', () => {
-				expect(p).toBeRejectedPromise();
-			});
-
-			it('already rejected, same as Promise', () => {
-				const p2 = Promise.all(createIterableAndError().iterable);
-				expect(p2).toBeRejectedPromise();
-				noUnhandledRejection(p2);
-			});
-
-			it('rejected with thrown error', async () => {
-				const err = await getRejectionReason(p);
-				expect(err).toBe(expectedErr);
-			});
-
-			it('rejected with thrown error, same as Promise', async () => {
-				const {err: expectedErr2, iterable} = createIterableAndError();
-				const p2 = Promise.all(iterable);
-				const err = await getRejectionReason(p2);
-				expect(err).toBe(expectedErr2);
-			});
-
-			it('not abortable', () => {
-				expect(p.canAbort()).toBeFalse();
-			});
-		}
-	);
+		});
+	});
 
 	describe('when passed iterable returning iterator with `.next()` method that returns invalid value', () => {
-		describe('on first iteration, returns Abortable which is', () => {
+		describe('on first iteration', () => {
 			runTests(() => ({
 				[Symbol.iterator]() {
 					return {
@@ -255,7 +228,7 @@ describe('Abortable.all', () => {
 			}));
 		});
 
-		describe('on later iteration, returns Abortable which is', () => {
+		describe('on later iteration', () => {
 			runTests(() => ({
 				[Symbol.iterator]() {
 					let count = 0;
@@ -270,45 +243,39 @@ describe('Abortable.all', () => {
 		});
 
 		function runTests(createIterable) {
-			let p;
-			beforeEach(() => {
-				const iterable = createIterable();
-				p = Abortable.all(iterable);
-			});
+			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+				const itWithSetup = createItWithSetupAndTeardown({
+					setup() {
+						const iterable = createIterable();
+						const p = PromiseOrAbortable.all(iterable);
+						return {p};
+					},
+					async teardown({p}) {
+						await p.catch(() => {});
+					}
+				});
 
-			afterEach(() => {
-				noUnhandledRejection(p);
-			});
+				describe(`returns ${className} which is`, () => {
+					itWithSetup(`${className} class instance`, ({p}) => {
+						expect(p).toBeInstanceOf(PromiseOrAbortable);
+					});
 
-			it('Abortable instance', () => { // eslint-disable-line jest/lowercase-name
-				expect(p).toBeInstanceOf(Abortable);
-			});
+					itWithSetup('already rejected', ({p}) => {
+						expect(p).toBeRejectedPromise();
+					});
 
-			it('already rejected', () => {
-				expect(p).toBeRejectedPromise();
-			});
+					itWithSetup('rejected with TypeError', async ({p}) => {
+						const err = await getRejectionReason(p);
+						expect(err).toBeInstanceOf(TypeError);
+						expect(err.message).toBe('Iterator result undefined is not an object');
+					});
 
-			it('already rejected, same as Promise', () => {
-				const p2 = Promise.all(createIterable());
-				expect(p2).toBeRejectedPromise();
-				noUnhandledRejection(p2);
-			});
-
-			it('rejected with thrown error', async () => {
-				const err = await getRejectionReason(p);
-				expect(err).toBeInstanceOf(TypeError);
-				expect(err.message).toBe('Iterator result undefined is not an object');
-			});
-
-			it('rejected with thrown error, same as Promise', async () => {
-				const p2 = Promise.all(createIterable());
-				const err = await getRejectionReason(p2);
-				expect(err).toBeInstanceOf(TypeError);
-				expect(err.message).toBe('Iterator result undefined is not an object');
-			});
-
-			it('not abortable', () => {
-				expect(p.canAbort()).toBeFalse();
+					if (isAbortable) {
+						itWithSetup('not abortable', ({p}) => {
+							expect(p.canAbort()).toBeFalse();
+						});
+					}
+				});
 			});
 		}
 	});
@@ -349,45 +316,38 @@ describe('Abortable.all', () => {
 		});
 
 		function runTests(createIterableAndError) {
-			let p, expectedErr;
-			beforeEach(() => {
-				const {err, iterable} = createIterableAndError();
-				expectedErr = err;
-				p = Abortable.all(iterable);
-			});
+			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+				const itWithSetup = createItWithSetupAndTeardown({
+					setup() {
+						const {err, iterable} = createIterableAndError();
+						const p = PromiseOrAbortable.all(iterable);
+						return {p, expectedErr: err};
+					},
+					async teardown({p}) {
+						await p.catch(() => {});
+					}
+				});
 
-			afterEach(() => {
-				noUnhandledRejection(p);
-			});
+				describe(`returns ${className} which is`, () => {
+					itWithSetup(`${className} class instance`, ({p}) => {
+						expect(p).toBeInstanceOf(PromiseOrAbortable);
+					});
 
-			it('Abortable instance', () => { // eslint-disable-line jest/lowercase-name
-				expect(p).toBeInstanceOf(Abortable);
-			});
+					itWithSetup('already rejected', ({p}) => {
+						expect(p).toBeRejectedPromise();
+					});
 
-			it('already rejected', () => {
-				expect(p).toBeRejectedPromise();
-			});
+					itWithSetup('rejected with thrown error', async ({p, expectedErr}) => {
+						const err = await getRejectionReason(p);
+						expect(err).toBe(expectedErr);
+					});
 
-			it('already rejected, same as Promise', () => {
-				const p2 = Promise.all(createIterableAndError().iterable);
-				expect(p2).toBeRejectedPromise();
-				noUnhandledRejection(p2);
-			});
-
-			it('rejected with thrown error', async () => {
-				const err = await getRejectionReason(p);
-				expect(err).toBe(expectedErr);
-			});
-
-			it('rejected with thrown error, same as Promise', async () => {
-				const {err: expectedErr2, iterable} = createIterableAndError();
-				const p2 = Promise.all(iterable);
-				const err = await getRejectionReason(p2);
-				expect(err).toBe(expectedErr2);
-			});
-
-			it('not abortable', () => {
-				expect(p.canAbort()).toBeFalse();
+					if (isAbortable) {
+						itWithSetup('not abortable', ({p}) => {
+							expect(p.canAbort()).toBeFalse();
+						});
+					}
+				});
 			});
 		}
 	});
@@ -396,14 +356,13 @@ describe('Abortable.all', () => {
 	// TODO Tests for thenables with getter on `.abort` property which throws
 	// TODO Tests for thenables with getter on `[IS_ABORTABLE]` property which throws
 	// TODO Tests for thenables with `.then` method which throws
+	// TODO Tests that `.then` getter called only once
+	// TODO Tests that `.then()` called only once
 	// TODO Tests for timing for thenables which call callback async
 
 	describe('timing', () => {
-		runTest('runs in sequence', Abortable);
-		runTest('runs in sequence, same as Promise', Promise);
-
-		function runTest(testName, PromiseOrAbortable) {
-			it(testName, async () => {
+		runTestsWithAbortableAndPromise(({PromiseOrAbortable}) => {
+			it('runs in sequence', async () => {
 				const calls = [];
 				const called = callName => calls.push(callName);
 
@@ -466,6 +425,6 @@ describe('Abortable.all', () => {
 					'after 2 microticks = resolved'
 				]);
 			});
-		}
+		});
 	});
 });
