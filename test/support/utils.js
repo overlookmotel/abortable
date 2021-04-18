@@ -138,7 +138,7 @@ function createItWithSetupAndTeardown({setup, teardown}) {
 	if (!setup) setup = () => ({});
 	if (!teardown) teardown = () => {};
 
-	return function itWithSetup(testName, testFn) {
+	function itWithSetupBase(it, testName, testFn) {
 		it(testName, async () => { // eslint-disable-line jest/expect-expect
 			let props = setup();
 			if (props instanceof Promise) props = await props;
@@ -150,5 +150,10 @@ function createItWithSetupAndTeardown({setup, teardown}) {
 				await teardown(props);
 			}
 		});
-	};
+	}
+
+	const itWithSetup = (testName, testFn) => itWithSetupBase(it, testName, testFn);
+	itWithSetup.only = (testName, testFn) => itWithSetupBase(it.only, testName, testFn);
+	itWithSetup.skip = (testName, testFn) => itWithSetupBase(it.skip, testName, testFn);
+	return itWithSetup;
 }
