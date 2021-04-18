@@ -282,7 +282,7 @@ describe('Abortable.all', () => {
 	});
 
 	describe('when passed iterable returning iterator with `.next()` method that throws', () => {
-		describe('on first iteration, returns Abortable which is', () => {
+		describe('on first iteration', () => {
 			runTests(() => {
 				const err = new Error('next error');
 				const iterable = {
@@ -298,7 +298,7 @@ describe('Abortable.all', () => {
 			});
 		});
 
-		describe('on later iteration, returns Abortable which is', () => {
+		describe('on later iteration', () => {
 			runTests(() => {
 				const err = new Error('next error');
 				const iterable = {
