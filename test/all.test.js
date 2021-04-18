@@ -10,7 +10,7 @@
 // Imports
 const {
 	runTestsWithAbortableAndPromise, createItWithSetupAndTeardown,
-	noUnhandledRejection, getRejectionReason, promiseStatus, tick, spy, isNode10
+	noUnhandledRejection, getRejectionReason, promiseStatus, tick, microtick, spy, isNode10
 } = require('./support/utils.js');
 
 // Init
@@ -544,16 +544,14 @@ describe('Abortable.all', () => {
 					}
 				};
 
-				Promise.resolve().then(() => called('before microtick'));
+				microtick(() => called('before microtick'));
 
 				const p = PromiseOrAbortable.all(iterable);
 				called('sync');
 
-				const pTicks = Promise.resolve()
-					.then(() => called(`after microtick = ${promiseStatus(p)}`))
-					.then(() => called(`after 2 microticks = ${promiseStatus(p)}`));
-
-				await Promise.all([pTicks, p]);
+				const pTick1 = microtick(() => called(`after microtick = ${promiseStatus(p)}`));
+				const pTick2 = microtick(2, () => called(`after 2 microticks = ${promiseStatus(p)}`));
+				await Promise.all([pTick1, pTick2, p]);
 
 				expect(calls).toEqual([
 					'iterator',

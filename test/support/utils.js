@@ -18,6 +18,7 @@ v8.setFlagsFromString('--allow-natives-syntax');
 module.exports = { // eslint-disable-line jest/no-export
 	spy: jest.fn,
 	tick,
+	microtick,
 	tryCatch,
 	getRejectionReason,
 	noUnhandledRejection,
@@ -27,8 +28,32 @@ module.exports = { // eslint-disable-line jest/no-export
 	isNode10: parseNodeVersion(process.version).major === 10
 };
 
+/**
+ * Wait a tick.
+ * @returns {Promise}
+ */
 function tick() {
 	return new Promise(resolve => setTimeout(resolve, 0));
+}
+
+/**
+ * Run function after 1 or more microticks.
+ * @param {number} [numTicks] - Number of microticks
+ * @param {Function} fn - Function to execute
+ * @returns {Promise}
+ */
+function microtick(numTicks, fn) {
+	if (typeof numTicks === 'function') {
+		fn = numTicks;
+		numTicks = 1;
+	}
+
+	let p = Promise.resolve();
+	for (let i = 1; i < numTicks; i++) {
+		p = p.then(() => {});
+	}
+
+	return p.then(fn);
 }
 
 function tryCatch(fn) {
