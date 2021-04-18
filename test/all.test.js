@@ -25,7 +25,8 @@ describe('Abortable.all', () => {
 				setup() {
 					const p = PromiseOrAbortable.all([]);
 					return {p};
-				}
+				},
+				teardown: ({p}) => p
 			});
 
 			describe(`returns ${className} which is`, () => {
