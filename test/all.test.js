@@ -13,7 +13,7 @@ const {AbortError} = require('abortable');
 
 // Imports
 const {
-	runTestsWithAbortableAndPromise, createItWithSetupAndTeardown,
+	describeAbortableAndPromise, createItWithSetupAndTeardown,
 	noUnhandledRejection, getRejectionReason, promiseStatus, tick, microtick, spy, isNode10
 } = require('./support/utils.js');
 
@@ -28,7 +28,7 @@ describe('Abortable.all', () => {
 
 	describe('when passed array of Promises', () => {
 		describe('which are already resolved', () => {
-			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 				const itWithSetup = createItWithSetupAndTeardown({
 					setup() {
 						const arr = [1, 2, 3];
@@ -86,7 +86,7 @@ describe('Abortable.all', () => {
 		});
 
 		describe('which resolve outside Promise constructor', () => {
-			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 				const itWithSetup = createItWithSetupAndTeardown({
 					setup() {
 						const arr = [1, 2, 3];
@@ -219,7 +219,7 @@ describe('Abortable.all', () => {
 
 	describe('when passed array of thenables', () => {
 		describe('which resolve synchronously', () => {
-			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 				const itWithSetup = createItWithSetupAndTeardown({
 					setup() {
 						const arr = [1, 2, 3];
@@ -265,7 +265,7 @@ describe('Abortable.all', () => {
 		});
 
 		describe('which resolve asynchronously', () => {
-			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 				const itWithSetup = createItWithSetupAndTeardown({
 					setup() {
 						const arr = [1, 2, 3];
@@ -352,7 +352,7 @@ describe('Abortable.all', () => {
 	});
 
 	describe('when passed array of literals', () => {
-		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 			const itWithSetup = createItWithSetupAndTeardown({
 				setup() {
 					const arr = [1, 2, 3];
@@ -391,7 +391,7 @@ describe('Abortable.all', () => {
 	});
 
 	describe('when passed array of non-thenable objects', () => {
-		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 			const itWithSetup = createItWithSetupAndTeardown({
 				setup() {
 					const arr = [{a: 1}, {b: 2}, {c: 3}];
@@ -433,7 +433,7 @@ describe('Abortable.all', () => {
 	});
 
 	describe('when passed empty array', () => {
-		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 			const itWithSetup = createItWithSetupAndTeardown({
 				setup() {
 					const p = PromiseOrAbortable.all([]);
@@ -461,7 +461,7 @@ describe('Abortable.all', () => {
 	});
 
 	describe('when passed non-iterable', () => {
-		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 			const itWithSetup = createItWithSetupAndTeardown({
 				setup() {
 					const p = PromiseOrAbortable.all(undefined);
@@ -503,7 +503,7 @@ describe('Abortable.all', () => {
 	});
 
 	describe('when passed non-iterable object', () => {
-		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 			const itWithSetup = createItWithSetupAndTeardown({
 				setup() {
 					const p = PromiseOrAbortable.all({});
@@ -545,7 +545,7 @@ describe('Abortable.all', () => {
 	});
 
 	describe('when passed iterable with `[Symbol.iterator]()` method that returns invalid iterator', () => {
-		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 			const itWithSetup = createItWithSetupAndTeardown({
 				setup() {
 					const iterable = {
@@ -586,7 +586,7 @@ describe('Abortable.all', () => {
 	});
 
 	describe('when passed iterable with `[Symbol.iterator]()` method that throws', () => {
-		runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 			const itWithSetup = createItWithSetupAndTeardown({
 				setup() {
 					const err = new Error('iterator error');
@@ -671,7 +671,7 @@ describe('Abortable.all', () => {
 		});
 
 		function runTests(createIterable, throwsOnLaterIteration) {
-			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 				const itWithSetup = createItWithSetupAndTeardown({
 					setup() {
 						const {iterable, thenables} = createIterable();
@@ -780,7 +780,7 @@ describe('Abortable.all', () => {
 		});
 
 		function runTests(createIterable, throwsOnLaterIteration) {
-			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 				const itWithSetup = createItWithSetupAndTeardown({
 					setup() {
 						const {iterable, err, thenables} = createIterable();
@@ -881,7 +881,7 @@ describe('Abortable.all', () => {
 		});
 
 		function runTests(createIterable) {
-			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 				const itWithSetup = createItWithSetupAndTeardown({
 					setup() {
 						const {iterable, err, thenables} = createIterable();
@@ -986,7 +986,7 @@ describe('Abortable.all', () => {
 		});
 
 		function runTests(createIterable) {
-			runTestsWithAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
 				const itWithSetup = createItWithSetupAndTeardown({
 					setup() {
 						const {iterable, err, thenables} = createIterable();
@@ -1058,7 +1058,7 @@ describe('Abortable.all', () => {
 	// TODO Tests for timing for thenables which call callback async
 
 	describe('timing', () => {
-		runTestsWithAbortableAndPromise(({PromiseOrAbortable}) => {
+		describeAbortableAndPromise(({PromiseOrAbortable}) => {
 			it('runs in sequence', async () => {
 				const calls = [];
 				const called = callName => calls.push(callName);

@@ -23,7 +23,7 @@ module.exports = { // eslint-disable-line jest/no-export
 	getRejectionReason,
 	noUnhandledRejection,
 	promiseStatus,
-	runTestsWithAbortableAndPromise,
+	describeAbortableAndPromise,
 	createItWithSetupAndTeardown,
 	isNode10: parseNodeVersion(process.version).major === 10
 };
@@ -95,7 +95,7 @@ const PROMISE_STATUSES = ['pending', 'resolved', 'rejected'];
  * @param {Function} runTests - Function to run tests
  * @returns {undefined}
  */
-function runTestsWithAbortableAndPromise(runTests) {
+function describeAbortableAndPromise(runTests) {
 	describe('Abortable', () => {
 		runTests({
 			PromiseOrAbortable: Abortable,
