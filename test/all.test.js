@@ -13,7 +13,7 @@ const {AbortError} = require('abortable');
 
 // Imports
 const {
-	describeAbortableAndPromise, createItWithSetupAndTeardown,
+	describeAbortableAndPromise, describeAbortableAndPromiseWithAwaitOption, createItWithSetupAndTeardown,
 	noUnhandledRejection, getRejectionReason, promiseStatus, tick, microtick, spy, isNode10
 } = require('./support/utils.js');
 
@@ -25,6 +25,8 @@ require('./support/index.js');
 describe('Abortable.all', () => {
 	// TODO Tests for normal behaviour with valid iterables
 	// TODO Test sync abort does not abort promises which are already followed elsewhere
+	// TODO Test all for when `await` option set
+	// (replace `describeAbortableAndPromise()` with `describeAbortableAndPromiseWithAwaitOption()`)
 
 	describe('when passed array of Promises', () => {
 		describe('which are already resolved', () => {
@@ -639,7 +641,7 @@ describe('Abortable.all', () => {
 							};
 						}
 					};
-					return {iterable};
+					return {iterable, thenables: []};
 				},
 				false
 			);
@@ -654,12 +656,19 @@ describe('Abortable.all', () => {
 							let count = 0;
 							return {
 								next() {
-									if (count === 4) return undefined;
-
+									if (count === 3) return undefined;
 									count++;
-									const thenable = {then: spy(), abort: spy()};
-									thenables.push(thenable);
-									return {value: thenable, done: false};
+
+									const thenableWithResolve = {
+										then: spy((resolve) => { thenableWithResolve.resolve = resolve; }),
+										abort: spy(),
+										resolve: undefined
+									};
+									thenables.push(thenableWithResolve);
+									return {
+										value: {then: thenableWithResolve.then, abort: thenableWithResolve.abort},
+										done: false
+									};
 								}
 							};
 						}
@@ -671,65 +680,100 @@ describe('Abortable.all', () => {
 		});
 
 		function runTests(createIterable, throwsOnLaterIteration) {
-			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-				const itWithSetup = createItWithSetupAndTeardown({
-					setup() {
-						const {iterable, thenables} = createIterable();
-						const p = PromiseOrAbortable.all(iterable);
-						return {p, thenables};
-					},
-					async teardown({p}) {
-						await p.catch(() => {});
-					}
-				});
-
-				describe(`returns ${className} which is`, () => {
-					itWithSetup(`${className} class instance`, ({p}) => {
-						expect(p).toBeInstanceOf(PromiseOrAbortable);
-					});
-
-					itWithSetup('already rejected', ({p}) => {
-						expect(p).toBeRejectedPromise();
-					});
-
-					itWithSetup('rejected with TypeError', async ({p}) => {
-						const err = await getRejectionReason(p);
-						expect(err).toBeInstanceOf(TypeError);
-						expect(err.message).toBe('Iterator result undefined is not an object');
-					});
-
-					if (isAbortable) {
-						itWithSetup('not abortable', ({p}) => {
-							expect(p.canAbort()).toBeFalse();
-						});
-					}
-				});
-
-				if (throwsOnLaterIteration) {
-					describe('calls', () => {
-						itWithSetup('`.then()` on earlier thenables', async ({p, thenables}) => {
+			describeAbortableAndPromiseWithAwaitOption(
+				({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+					const itWithSetup = createItWithSetupAndTeardown({
+						setup() {
+							const {iterable, thenables} = createIterable();
+							const p = awaitAll
+								? PromiseOrAbortable.all(iterable, {await: true})
+								: PromiseOrAbortable.all(iterable);
+							const resolveAll = () => thenables.forEach(thenable => thenable.resolve());
+							return {p, thenables, resolveAll};
+						},
+						async teardown({p, resolveAll}) {
 							noUnhandledRejection(p);
 							await tick();
-							for (const thenable of thenables) {
-								expect(thenable.then).toHaveBeenCalledTimes(1);
-							}
+							resolveAll();
+							await p.catch(() => {});
+						}
+					});
+
+					describe(`returns ${className} which is`, () => {
+						itWithSetup(`${className} class instance`, ({p}) => {
+							expect(p).toBeInstanceOf(PromiseOrAbortable);
+						});
+
+						if (!throwsOnLaterIteration || !awaitAll) {
+							itWithSetup('already rejected', ({p}) => {
+								expect(p).toBeRejectedPromise();
+							});
+						} else {
+							itWithSetup('pending', ({p}) => {
+								expect(p).toBePendingPromise();
+							});
+
+							itWithSetup(
+								'not rejected until 1 microtick after all promises resolved',
+								async ({p, thenables}) => {
+									noUnhandledRejection(p);
+									await tick();
+									expect(thenables).toHaveLength(3);
+
+									thenables[0].resolve();
+									thenables[1].resolve();
+									await tick();
+									expect(p).toBePendingPromise();
+									thenables[2].resolve();
+									expect(p).toBePendingPromise();
+									await microtick(() => expect(p).toBeRejectedPromise());
+								}
+							);
+						}
+
+						itWithSetup('rejected with TypeError', async ({p, resolveAll}) => {
+							noUnhandledRejection(p);
+							await tick();
+							resolveAll();
+
+							const err = await getRejectionReason(p);
+							expect(err).toBeInstanceOf(TypeError);
+							expect(err.message).toBe('Iterator result undefined is not an object');
 						});
 
 						if (isAbortable) {
-							itWithSetup('`.abort()` on earlier thenables', async ({p, thenables}) => {
-								noUnhandledRejection(p);
-								await tick();
-								for (const thenable of thenables) {
-									expect(thenable.abort).toHaveBeenCalledTimes(1);
-									const abortErr = thenable.abort.mock.calls[0][0];
-									expect(abortErr).toBeInstanceOf(AbortError);
-									expect(abortErr.message).toBe('Abort due to collection completion');
-								}
+							itWithSetup('not abortable', ({p}) => {
+								expect(p.canAbort()).toBeFalse();
 							});
 						}
 					});
+
+					if (throwsOnLaterIteration) {
+						describe('calls', () => {
+							itWithSetup('`.then()` on earlier thenables', async ({p, thenables}) => {
+								noUnhandledRejection(p);
+								await tick();
+								for (const thenable of thenables) {
+									expect(thenable.then).toHaveBeenCalledTimes(1);
+								}
+							});
+
+							if (isAbortable) {
+								itWithSetup('`.abort()` on earlier thenables', async ({p, thenables}) => {
+									noUnhandledRejection(p);
+									await tick();
+									for (const thenable of thenables) {
+										expect(thenable.abort).toHaveBeenCalledTimes(1);
+										const abortErr = thenable.abort.mock.calls[0][0];
+										expect(abortErr).toBeInstanceOf(AbortError);
+										expect(abortErr.message).toBe('Abort due to collection completion');
+									}
+								});
+							}
+						});
+					}
 				}
-			});
+			);
 		}
 	});
 
@@ -747,7 +791,7 @@ describe('Abortable.all', () => {
 							};
 						}
 					};
-					return {iterable, err};
+					return {iterable, err, thenables: []};
 				},
 				false
 			);
@@ -763,12 +807,19 @@ describe('Abortable.all', () => {
 							let count = 0;
 							return {
 								next() {
-									if (count === 4) throw err;
+									if (count === 3) throw err;
 									count++;
 
-									const thenable = {then: spy(), abort: spy()};
-									thenables.push(thenable);
-									return {value: thenable, done: false};
+									const thenableWithResolve = {
+										then: spy((resolve) => { thenableWithResolve.resolve = resolve; }),
+										abort: spy(),
+										resolve: undefined
+									};
+									thenables.push(thenableWithResolve);
+									return {
+										value: {then: thenableWithResolve.then, abort: thenableWithResolve.abort},
+										done: false
+									};
 								}
 							};
 						}
@@ -780,42 +831,228 @@ describe('Abortable.all', () => {
 		});
 
 		function runTests(createIterable, throwsOnLaterIteration) {
-			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-				const itWithSetup = createItWithSetupAndTeardown({
-					setup() {
-						const {iterable, err, thenables} = createIterable();
-						const p = PromiseOrAbortable.all(iterable);
-						return {p, expectedErr: err, thenables};
-					},
-					async teardown({p}) {
-						await p.catch(() => {});
-					}
-				});
-
-				describe(`returns ${className} which is`, () => {
-					itWithSetup(`${className} class instance`, ({p}) => {
-						expect(p).toBeInstanceOf(PromiseOrAbortable);
+			describeAbortableAndPromiseWithAwaitOption(
+				({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+					const itWithSetup = createItWithSetupAndTeardown({
+						setup() {
+							const {iterable, err, thenables} = createIterable();
+							const p = awaitAll
+								? PromiseOrAbortable.all(iterable, {await: true})
+								: PromiseOrAbortable.all(iterable);
+							const resolveAll = () => thenables.forEach(thenable => thenable.resolve());
+							return {p, expectedErr: err, thenables, resolveAll};
+						},
+						async teardown({p, resolveAll}) {
+							noUnhandledRejection(p);
+							await tick();
+							resolveAll();
+							await p.catch(() => {});
+						}
 					});
 
-					itWithSetup('already rejected', ({p}) => {
-						expect(p).toBeRejectedPromise();
+					describe(`returns ${className} which is`, () => {
+						itWithSetup(`${className} class instance`, ({p}) => {
+							expect(p).toBeInstanceOf(PromiseOrAbortable);
+						});
+
+						if (!throwsOnLaterIteration || !awaitAll) {
+							itWithSetup('already rejected', ({p}) => {
+								expect(p).toBeRejectedPromise();
+							});
+						} else {
+							itWithSetup('pending', ({p}) => {
+								expect(p).toBePendingPromise();
+							});
+
+							itWithSetup(
+								'not rejected until 1 microtick after all promises resolved',
+								async ({p, thenables}) => {
+									noUnhandledRejection(p);
+									await tick();
+									expect(thenables).toHaveLength(3);
+
+									thenables[0].resolve();
+									thenables[1].resolve();
+									await tick();
+									expect(p).toBePendingPromise();
+									thenables[2].resolve();
+									expect(p).toBePendingPromise();
+									await microtick(() => expect(p).toBeRejectedPromise());
+								}
+							);
+						}
+
+						itWithSetup('rejected with thrown error', async ({p, expectedErr, resolveAll}) => {
+							noUnhandledRejection(p);
+							await tick();
+							resolveAll();
+
+							const err = await getRejectionReason(p);
+							expect(err).toBe(expectedErr);
+						});
+
+						if (isAbortable) {
+							itWithSetup('not abortable', ({p}) => {
+								expect(p.canAbort()).toBeFalse();
+							});
+						}
 					});
 
-					itWithSetup('rejected with thrown error', async ({p, expectedErr}) => {
-						const err = await getRejectionReason(p);
-						expect(err).toBe(expectedErr);
-					});
+					if (throwsOnLaterIteration) {
+						describe('calls', () => {
+							itWithSetup('`.then()` on earlier thenables', async ({p, thenables}) => {
+								noUnhandledRejection(p);
+								await tick();
+								for (const thenable of thenables) {
+									expect(thenable.then).toHaveBeenCalledTimes(1);
+								}
+							});
 
-					if (isAbortable) {
-						itWithSetup('not abortable', ({p}) => {
-							expect(p.canAbort()).toBeFalse();
+							if (isAbortable) {
+								itWithSetup('`.abort()` on earlier thenables', async ({p, thenables}) => {
+									noUnhandledRejection(p);
+									await tick();
+									for (const thenable of thenables) {
+										expect(thenable.abort).toHaveBeenCalledTimes(1);
+										const abortErr = thenable.abort.mock.calls[0][0];
+										expect(abortErr).toBeInstanceOf(AbortError);
+										expect(abortErr.message).toBe('Abort due to collection completion');
+									}
+								});
+							}
 						});
 					}
-				});
+				}
+			);
+		}
+	});
 
-				if (throwsOnLaterIteration) {
+	describe('when thenable getter for `.then` property throws', () => {
+		describe('on first iteration', () => {
+			runTests(() => {
+				const err = new Error('then getter error'),
+					thenables = [];
+				const createThenable = () => {
+					const thenableWithResolve = {
+						then: spy((resolve) => { thenableWithResolve.resolve = resolve; }),
+						abort: spy(),
+						resolve: undefined
+					};
+					thenables.push(thenableWithResolve);
+					return {then: thenableWithResolve.then, abort: thenableWithResolve.abort};
+				};
+
+				const iterable = [
+					{get then() { throw err; }},
+					createThenable(),
+					createThenable(),
+					createThenable(),
+					createThenable()
+				];
+				return {iterable, err, thenables};
+			});
+		});
+
+		describe('on later iteration', () => {
+			runTests(() => {
+				const err = new Error('then getter error'),
+					thenables = [];
+				const createThenable = () => {
+					const thenableWithResolve = {
+						then: spy((resolve) => { thenableWithResolve.resolve = resolve; }),
+						abort: spy(),
+						resolve: undefined
+					};
+					thenables.push(thenableWithResolve);
+					return {then: thenableWithResolve.then, abort: thenableWithResolve.abort};
+				};
+
+				const iterable = [
+					createThenable(),
+					createThenable(),
+					{get then() { throw err; }},
+					createThenable(),
+					createThenable()
+				];
+				return {iterable, err, thenables};
+			});
+		});
+
+		function runTests(createIterable) {
+			describeAbortableAndPromiseWithAwaitOption(
+				({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+					const itWithSetup = createItWithSetupAndTeardown({
+						setup() {
+							const {iterable, err, thenables} = createIterable();
+							const p = awaitAll
+								? PromiseOrAbortable.all(iterable, {await: true})
+								: PromiseOrAbortable.all(iterable);
+							const resolveAll = () => thenables.forEach(thenable => thenable.resolve());
+							return {p, expectedErr: err, thenables, resolveAll};
+						},
+						async teardown({p, resolveAll}) {
+							noUnhandledRejection(p);
+							await tick();
+							resolveAll();
+							await p.catch(() => {});
+						}
+					});
+
+					describe(`returns ${className} which is`, () => {
+						itWithSetup(`${className} instance`, ({p}) => {
+							expect(p).toBeInstanceOf(PromiseOrAbortable);
+						});
+
+						itWithSetup('pending', ({p}) => {
+							expect(p).toBePendingPromise();
+						});
+
+						if (!awaitAll) {
+							itWithSetup('rejects after 1 microtick', async ({p}) => {
+								await microtick(() => expect(p).toBeRejectedPromise());
+							});
+						} else {
+							itWithSetup(
+								'does not reject until 1 microtick after all promises resolved',
+								async ({p, thenables}) => {
+									noUnhandledRejection(p);
+									await tick();
+									expect(thenables).toHaveLength(4);
+
+									thenables[0].resolve();
+									thenables[1].resolve();
+									thenables[2].resolve();
+									await tick();
+									expect(p).toBePendingPromise();
+									thenables[3].resolve();
+									expect(p).toBePendingPromise();
+									await microtick(() => expect(p).toBeRejectedPromise());
+								}
+							);
+						}
+
+						itWithSetup('rejected with thrown error', async ({p, expectedErr, resolveAll}) => {
+							noUnhandledRejection(p);
+							await tick();
+							resolveAll();
+
+							const err = await getRejectionReason(p);
+							expect(err).toBe(expectedErr);
+						});
+
+						if (isAbortable) {
+							itWithSetup('abortable', ({p}) => {
+								expect(p.canAbort()).toBeTrue();
+							});
+
+							itWithSetup('not abortable after 1 microtick', async ({p}) => {
+								await microtick(() => expect(p.canAbort()).toBeFalse());
+							});
+						}
+					});
+
 					describe('calls', () => {
-						itWithSetup('`.then()` on earlier thenables', async ({p, thenables}) => {
+						itWithSetup('`.then()` on all thenables', async ({p, thenables}) => {
 							noUnhandledRejection(p);
 							await tick();
 							for (const thenable of thenables) {
@@ -824,7 +1061,7 @@ describe('Abortable.all', () => {
 						});
 
 						if (isAbortable) {
-							itWithSetup('`.abort()` on earlier thenables', async ({p, thenables}) => {
+							itWithSetup('`.abort()` on all thenables', async ({p, thenables}) => {
 								noUnhandledRejection(p);
 								await tick();
 								for (const thenable of thenables) {
@@ -837,112 +1074,7 @@ describe('Abortable.all', () => {
 						}
 					});
 				}
-			});
-		}
-	});
-
-	describe('when thenable getter for `.then` property throws', () => {
-		describe('on first iteration', () => {
-			runTests(() => {
-				const err = new Error('then getter error'),
-					thenables = [];
-				const createThenable = () => {
-					const thenable = {then: spy(), abort: spy()};
-					thenables.push(thenable);
-					return thenable;
-				};
-
-				const iterable = [
-					{get then() { throw err; }},
-					createThenable(),
-					createThenable()
-				];
-				return {iterable, err, thenables};
-			});
-		});
-
-		describe('on later iteration', () => {
-			runTests(() => {
-				const err = new Error('then getter error'),
-					thenables = [];
-				const createThenable = () => {
-					const thenable = {then: spy(), abort: spy()};
-					thenables.push(thenable);
-					return thenable;
-				};
-
-				const iterable = [
-					createThenable(),
-					{get then() { throw err; }},
-					createThenable()
-				];
-				return {iterable, err, thenables};
-			});
-		});
-
-		function runTests(createIterable) {
-			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-				const itWithSetup = createItWithSetupAndTeardown({
-					setup() {
-						const {iterable, err, thenables} = createIterable();
-						const p = PromiseOrAbortable.all(iterable);
-						return {p, expectedErr: err, thenables};
-					},
-					async teardown({p}) {
-						await p.catch(() => {});
-					}
-				});
-
-				describe(`returns ${className} which is`, () => {
-					itWithSetup(`${className} instance`, ({p}) => {
-						expect(p).toBeInstanceOf(PromiseOrAbortable);
-					});
-
-					itWithSetup('pending', ({p}) => {
-						expect(p).toBePendingPromise();
-					});
-
-					itWithSetup('rejected with thrown error', async ({p, expectedErr}) => {
-						const err = await getRejectionReason(p);
-						expect(err).toBe(expectedErr);
-					});
-
-					if (isAbortable) {
-						itWithSetup('abortable', ({p}) => {
-							expect(p.canAbort()).toBeTrue();
-						});
-					}
-				});
-
-				itWithSetup('continues iteration', async ({p, thenables}) => {
-					noUnhandledRejection(p);
-					await tick();
-					expect(thenables).toHaveLength(2);
-				});
-
-				describe('calls', () => {
-					itWithSetup('`.then()` on all thenables', async ({p, thenables}) => {
-						noUnhandledRejection(p);
-						await tick();
-						for (const thenable of thenables) {
-							expect(thenable.then).toHaveBeenCalledTimes(1);
-						}
-					});
-
-					if (isAbortable) {
-						itWithSetup('`.abort()` on all thenables', async ({p, thenables}) => {
-							noUnhandledRejection(p);
-							await tick();
-							for (const thenable of thenables) {
-								expect(thenable.abort).toHaveBeenCalledTimes(1);
-								const abortErr = thenable.abort.mock.calls[0][0];
-								expect(abortErr).toBeInstanceOf(AbortError);
-								expect(abortErr.message).toBe('Abort due to collection completion');
-							}
-						});
-					}
-				});
-			});
+			);
 		}
 	});
 
@@ -952,13 +1084,19 @@ describe('Abortable.all', () => {
 				const err = new Error('then error'),
 					thenables = [];
 				const createThenable = () => {
-					const thenable = {then: spy(), abort: spy()};
-					thenables.push(thenable);
-					return thenable;
+					const thenableWithResolve = {
+						then: spy((resolve) => { thenableWithResolve.resolve = resolve; }),
+						abort: spy(),
+						resolve: undefined
+					};
+					thenables.push(thenableWithResolve);
+					return {then: thenableWithResolve.then, abort: thenableWithResolve.abort};
 				};
 
 				const iterable = [
 					{then() { throw err; }},
+					createThenable(),
+					createThenable(),
 					createThenable(),
 					createThenable()
 				];
@@ -971,14 +1109,20 @@ describe('Abortable.all', () => {
 				const err = new Error('then error'),
 					thenables = [];
 				const createThenable = () => {
-					const thenable = {then: spy(), abort: spy()};
-					thenables.push(thenable);
-					return thenable;
+					const thenableWithResolve = {
+						then: spy((resolve) => { thenableWithResolve.resolve = resolve; }),
+						abort: spy(),
+						resolve: undefined
+					};
+					thenables.push(thenableWithResolve);
+					return {then: thenableWithResolve.then, abort: thenableWithResolve.abort};
 				};
 
 				const iterable = [
 					createThenable(),
+					createThenable(),
 					{then() { throw err; }},
+					createThenable(),
 					createThenable()
 				];
 				return {iterable, err, thenables};
@@ -986,68 +1130,110 @@ describe('Abortable.all', () => {
 		});
 
 		function runTests(createIterable) {
-			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-				const itWithSetup = createItWithSetupAndTeardown({
-					setup() {
-						const {iterable, err, thenables} = createIterable();
-						const p = PromiseOrAbortable.all(iterable);
-						return {p, expectedErr: err, thenables};
-					},
-					async teardown({p}) {
-						await p.catch(() => {});
-					}
-				});
-
-				describe(`returns ${className} which is`, () => {
-					itWithSetup(`${className} instance`, ({p}) => {
-						expect(p).toBeInstanceOf(PromiseOrAbortable);
-					});
-
-					itWithSetup('pending', ({p}) => {
-						expect(p).toBePendingPromise();
-					});
-
-					itWithSetup('rejected with thrown error', async ({p, expectedErr}) => {
-						const err = await getRejectionReason(p);
-						expect(err).toBe(expectedErr);
-					});
-
-					if (isAbortable) {
-						itWithSetup('abortable', ({p}) => {
-							expect(p.canAbort()).toBeTrue();
-						});
-					}
-				});
-
-				itWithSetup('continues iteration', async ({p, thenables}) => {
-					noUnhandledRejection(p);
-					await tick();
-					expect(thenables).toHaveLength(2);
-				});
-
-				describe('calls', () => {
-					itWithSetup('`.then()` on all thenables', async ({p, thenables}) => {
-						noUnhandledRejection(p);
-						await tick();
-						for (const thenable of thenables) {
-							expect(thenable.then).toHaveBeenCalledTimes(1);
+			describeAbortableAndPromiseWithAwaitOption(
+				({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+					const itWithSetup = createItWithSetupAndTeardown({
+						setup() {
+							const {iterable, err, thenables} = createIterable();
+							const p = awaitAll
+								? PromiseOrAbortable.all(iterable, {await: true})
+								: PromiseOrAbortable.all(iterable);
+							const resolveAll = () => thenables.forEach(thenable => thenable.resolve());
+							return {p, expectedErr: err, thenables, resolveAll};
+						},
+						async teardown({p, resolveAll}) {
+							noUnhandledRejection(p);
+							await tick();
+							resolveAll();
+							await p.catch(() => {});
 						}
 					});
 
-					if (isAbortable) {
-						itWithSetup('`.abort()` on all thenables', async ({p, thenables}) => {
+					describe(`returns ${className} which is`, () => {
+						itWithSetup(`${className} instance`, ({p}) => {
+							expect(p).toBeInstanceOf(PromiseOrAbortable);
+						});
+
+						itWithSetup('pending', ({p}) => {
+							expect(p).toBePendingPromise();
+						});
+
+						if (!awaitAll) {
+							itWithSetup('still pending after 1 microtick', async ({p}) => {
+								await microtick(() => expect(p).toBePendingPromise());
+							});
+
+							itWithSetup('rejected after 2 microticks', async ({p}) => {
+								await microtick(2, () => expect(p).toBeRejectedPromise());
+							});
+						} else {
+							itWithSetup(
+								'does not reject until 1 microtick after all promises resolved',
+								async ({p, thenables}) => {
+									noUnhandledRejection(p);
+									await tick();
+									expect(thenables).toHaveLength(4);
+
+									thenables[0].resolve();
+									thenables[1].resolve();
+									thenables[2].resolve();
+									await tick();
+									expect(p).toBePendingPromise();
+									thenables[3].resolve();
+									expect(p).toBePendingPromise();
+									await microtick(() => expect(p).toBeRejectedPromise());
+								}
+							);
+						}
+
+						itWithSetup('rejected with thrown error', async ({p, expectedErr, resolveAll}) => {
+							noUnhandledRejection(p);
+							await tick();
+							resolveAll();
+
+							const err = await getRejectionReason(p);
+							expect(err).toBe(expectedErr);
+						});
+
+						if (isAbortable) {
+							itWithSetup('abortable', ({p}) => {
+								expect(p.canAbort()).toBeTrue();
+							});
+
+							itWithSetup('still abortable after 1 microtick', async ({p}) => {
+								await microtick(() => expect(p.canAbort()).toBeTrue());
+							});
+
+							itWithSetup('not abortable after 2 microticks', async ({p}) => {
+								await microtick(2, () => expect(p.canAbort()).toBeFalse());
+							});
+						}
+					});
+
+					describe('calls', () => {
+						itWithSetup('`.then()` on all thenables', async ({p, thenables}) => {
 							noUnhandledRejection(p);
 							await tick();
 							for (const thenable of thenables) {
-								expect(thenable.abort).toHaveBeenCalledTimes(1);
-								const abortErr = thenable.abort.mock.calls[0][0];
-								expect(abortErr).toBeInstanceOf(AbortError);
-								expect(abortErr.message).toBe('Abort due to collection completion');
+								expect(thenable.then).toHaveBeenCalledTimes(1);
 							}
 						});
-					}
-				});
-			});
+
+						if (isAbortable) {
+							itWithSetup('`.abort()` on all thenables', async ({p, thenables}) => {
+								noUnhandledRejection(p);
+								await tick();
+								for (const thenable of thenables) {
+									expect(thenable.abort).toHaveBeenCalledTimes(1);
+									const abortErr = thenable.abort.mock.calls[0][0];
+									expect(abortErr).toBeInstanceOf(AbortError);
+									expect(abortErr.message).toBe('Abort due to collection completion');
+								}
+							});
+						}
+					});
+				}
+			);
 		}
 	});
 

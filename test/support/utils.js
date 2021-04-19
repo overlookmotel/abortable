@@ -24,6 +24,8 @@ module.exports = { // eslint-disable-line jest/no-export
 	noUnhandledRejection,
 	promiseStatus,
 	describeAbortableAndPromise,
+	describeAwaitOption,
+	describeAbortableAndPromiseWithAwaitOption,
 	createItWithSetupAndTeardown,
 	isNode10: parseNodeVersion(process.version).major === 10
 };
@@ -110,6 +112,35 @@ function describeAbortableAndPromise(runTests) {
 			className: 'Promise',
 			isAbortable: false
 		});
+	});
+}
+
+/**
+ * Run same tests with `await` option `true` and `false`.
+ * `runTests()` is called with boolean.
+ * @param {Function} runTests - Function to run tests
+ * @returns {undefined}
+ */
+function describeAwaitOption(runTests) {
+	describe('without `await` option', () => runTests(false));
+	describe('with `await` option', () => runTests(true));
+}
+
+/**
+ * Run same tests with `Abortable` and `Promise`, and `await` option `true` and `false`.
+ * `await` option always false for `Promise`.
+ * `runTests()` is called with object with `PromiseOrAbortable`, `className`, `isAbortable`
+ * and `awaitAll` props.
+ * @param {Function} runTests - Function to run tests
+ * @returns {undefined}
+ */
+function describeAbortableAndPromiseWithAwaitOption(runTests) {
+	describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+		if (isAbortable) {
+			describeAwaitOption(awaitAll => runTests({PromiseOrAbortable, className, isAbortable, awaitAll}));
+		} else {
+			runTests({PromiseOrAbortable, className, isAbortable, awaitAll: false});
+		}
 	});
 }
 
