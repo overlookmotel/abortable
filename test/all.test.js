@@ -13,7 +13,7 @@ const {AbortError} = require('abortable');
 
 // Imports
 const {
-	describeAbortableAndPromise, describeAbortableAndPromiseWithAwaitOption, createItWithSetupAndTeardown,
+	describeAbortableAndPromiseWithAwaitOption, createItWithSetupAndTeardown,
 	noUnhandledRejection, getRejectionReason, promiseStatus, tick, microtick, spy, isNode10
 } = require('./support/utils.js');
 
@@ -25,195 +25,203 @@ require('./support/index.js');
 describe('Abortable.all', () => {
 	// TODO Tests for normal behaviour with valid iterables
 	// TODO Test sync abort does not abort promises which are already followed elsewhere
-	// TODO Test all for when `await` option set
-	// (replace `describeAbortableAndPromise()` with `describeAbortableAndPromiseWithAwaitOption()`)
 
 	describe('when passed array of Promises', () => {
 		describe('which are already resolved', () => {
-			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-				const itWithSetup = createItWithSetupAndTeardown({
-					setup() {
-						const arr = [1, 2, 3];
-						const p = PromiseOrAbortable.all(arr.map(n => Promise.resolve(n)));
-						return {p, arr};
-					},
-					teardown: ({p}) => p
-				});
-
-				describe(`returns ${className} which is`, () => {
-					itWithSetup(`${className} class instance`, ({p}) => {
-						expect(p).toBeInstanceOf(PromiseOrAbortable);
+			describeAbortableAndPromiseWithAwaitOption(
+				({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+					const itWithSetup = createItWithSetupAndTeardown({
+						setup() {
+							const arr = [1, 2, 3];
+							const iterable = arr.map(n => Promise.resolve(n));
+							const p = awaitAll
+								? PromiseOrAbortable.all(iterable, {await: true})
+								: PromiseOrAbortable.all(iterable);
+							return {p, arr};
+						},
+						teardown: ({p}) => p
 					});
 
-					itWithSetup('pending', ({p}) => {
-						expect(p).toBePendingPromise();
-					});
-
-					// Skipping this test as Abortable's behavior is not exactly the same as Promise's.
-					// Promise will resolve in this case after 1 microtick, whereas Abortable takes 2 microticks.
-					// It's impossible for Abortable to mimic Promise's behavior perfectly in this case,
-					// as it cannot determine synchronously whether promises are resolved or not.
-					// `.then()` handlers are not called until after 1 microtick (matching Promise's behavior)
-					// and then the `.then()` callback is not called until another microtick has passed.
-					// Could solve this by using V8 runtime functions to synchronously detect resolved promises,
-					// but that seems like a bad idea.
-					itWithSetup.skip('still pending after 1 microtick', async ({p}) => {
-						await microtick(() => expect(p).toBePendingPromise());
-					});
-
-					itWithSetup('resolved before 2 microticks have passed', async ({p}) => {
-						await microtick(2, () => expect(p).toBeResolvedPromise());
-					});
-
-					itWithSetup('resolved with array of promise resolution values', async ({p, arr}) => {
-						const res = await p;
-						expect(res).toEqual(arr);
-					});
-
-					if (isAbortable) {
-						itWithSetup('abortable', ({p}) => {
-							expect(p.canAbort()).toBeTrue();
+					describe(`returns ${className} which is`, () => {
+						itWithSetup(`${className} class instance`, ({p}) => {
+							expect(p).toBeInstanceOf(PromiseOrAbortable);
 						});
 
-						itWithSetup('still abortable after 1 microtick', async ({p}) => {
-							await microtick(() => expect(p.canAbort()).toBeTrue());
+						itWithSetup('pending', ({p}) => {
+							expect(p).toBePendingPromise();
 						});
 
-						itWithSetup('not abortable after 2 microticks', async ({p}) => {
-							await microtick(2, () => expect(p.canAbort()).toBeFalse());
+						// Skipping this test as Abortable's behavior is not exactly the same as Promise's.
+						// Promise will resolve in this case after 1 microtick, whereas Abortable takes 2 microticks.
+						// It's impossible for Abortable to mimic Promise's behavior perfectly in this case,
+						// as it cannot determine synchronously whether promises are resolved or not.
+						// `.then()` handlers are not called until after 1 microtick (matching Promise's behavior)
+						// and then the `.then()` callback is not called until another microtick has passed.
+						// Could solve this by using V8 runtime functions to synchronously detect resolved promises,
+						// but that seems like a bad idea.
+						itWithSetup.skip('still pending after 1 microtick', async ({p}) => {
+							await microtick(() => expect(p).toBePendingPromise());
 						});
-					}
-				});
-			});
+
+						itWithSetup('resolved before 2 microticks have passed', async ({p}) => {
+							await microtick(2, () => expect(p).toBeResolvedPromise());
+						});
+
+						itWithSetup('resolved with array of promise resolution values', async ({p, arr}) => {
+							const res = await p;
+							expect(res).toEqual(arr);
+						});
+
+						if (isAbortable) {
+							itWithSetup('abortable', ({p}) => {
+								expect(p.canAbort()).toBeTrue();
+							});
+
+							itWithSetup('still abortable after 1 microtick', async ({p}) => {
+								await microtick(() => expect(p.canAbort()).toBeTrue());
+							});
+
+							itWithSetup('not abortable after 2 microticks', async ({p}) => {
+								await microtick(2, () => expect(p.canAbort()).toBeFalse());
+							});
+						}
+					});
+				}
+			);
 		});
 
 		describe('which resolve outside Promise constructor', () => {
-			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-				const itWithSetup = createItWithSetupAndTeardown({
-					setup() {
-						const arr = [1, 2, 3];
-						const resolves = [];
-						const p = PromiseOrAbortable.all(arr.map(
-							(n, i) => new Promise((resolve) => { resolves[i] = () => resolve(n); })
-						));
-						const resolveAll = () => resolves.forEach(resolve => resolve());
-						return {p, arr, resolves, resolveAll};
-					},
-					async teardown({p, resolveAll}) {
-						resolveAll();
-						await p;
-					}
-				});
-
-				describe(`returns ${className} which is`, () => {
-					itWithSetup(`${className} class instance`, ({p}) => {
-						expect(p).toBeInstanceOf(PromiseOrAbortable);
-					});
-
-					itWithSetup('pending', ({p}) => {
-						expect(p).toBePendingPromise();
-					});
-
-					itWithSetup('pending until all promises resolved', async ({p, resolves}) => {
-						resolves[0]();
-						resolves[1]();
-						await tick();
-						expect(p).toBePendingPromise();
-						resolves[2]();
-					});
-
-					// Skipping this test as Abortable's behavior is not exactly the same as Promise's.
-					// Promise resolves after 1 microtick, whereas Abortable resolves after 2 microticks.
-					// It's impossible for Abortable to mimic Promise's behavior perfectly in this case.
-					itWithSetup.skip(
-						'if promises resolved sync, still pending 1 microticks after last promise resolved',
-						async ({p, resolveAll}) => {
+			describeAbortableAndPromiseWithAwaitOption(
+				({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+					const itWithSetup = createItWithSetupAndTeardown({
+						setup() {
+							const arr = [1, 2, 3];
+							const resolves = [];
+							const iterable = arr.map(
+								(n, i) => new Promise((resolve) => { resolves[i] = () => resolve(n); })
+							);
+							const p = awaitAll
+								? PromiseOrAbortable.all(iterable, {await: true})
+								: PromiseOrAbortable.all(iterable);
+							const resolveAll = () => resolves.forEach(resolve => resolve());
+							return {p, arr, resolves, resolveAll};
+						},
+						async teardown({p, resolveAll}) {
 							resolveAll();
-							expect(p).toBePendingPromise();
-							await microtick(() => expect(p).toBePendingPromise());
+							await p;
 						}
-					);
+					});
 
-					itWithSetup(
-						'if promises resolved sync, resolved before 2 microticks have passed after last promise resolved',
-						async ({p, resolveAll}) => {
-							resolveAll();
+					describe(`returns ${className} which is`, () => {
+						itWithSetup(`${className} class instance`, ({p}) => {
+							expect(p).toBeInstanceOf(PromiseOrAbortable);
+						});
+
+						itWithSetup('pending', ({p}) => {
 							expect(p).toBePendingPromise();
-							await microtick(2, () => expect(p).toBeResolvedPromise());
-						}
-					);
+						});
 
-					itWithSetup(
-						'if promises resolved async, resolved 1 microtick after last promise resolved',
-						async ({p, resolves}) => {
+						itWithSetup('pending until all promises resolved', async ({p, resolves}) => {
 							resolves[0]();
 							resolves[1]();
 							await tick();
 							expect(p).toBePendingPromise();
 							resolves[2]();
-							expect(p).toBePendingPromise();
-							await microtick(() => expect(p).toBeResolvedPromise());
-						}
-					);
-
-					itWithSetup(
-						'resolved with array of promise resolution values',
-						async ({p, resolveAll, arr}) => {
-							resolveAll();
-							const res = await p;
-							expect(res).toEqual(arr);
-						}
-					);
-
-					if (isAbortable) {
-						itWithSetup('abortable', ({p}) => {
-							expect(p.canAbort()).toBeTrue();
 						});
 
-						itWithSetup(
-							'if promises resolved sync, still abortable after all promises resolved',
-							({p, resolveAll}) => {
+						// Skipping this test as Abortable's behavior is not exactly the same as Promise's.
+						// Promise resolves after 1 microtick, whereas Abortable resolves after 2 microticks.
+						// It's impossible for Abortable to mimic Promise's behavior perfectly in this case.
+						itWithSetup.skip(
+							'if promises resolved sync, still pending 1 microticks after last promise resolved',
+							async ({p, resolveAll}) => {
 								resolveAll();
-								expect(p.canAbort()).toBeTrue();
+								expect(p).toBePendingPromise();
+								await microtick(() => expect(p).toBePendingPromise());
 							}
 						);
 
 						itWithSetup(
-							'if promises resolved sync, still abortable 1 microtick after all promises resolved',
+							'if promises resolved sync, resolved before 2 microticks have passed after last promise resolved',
 							async ({p, resolveAll}) => {
 								resolveAll();
-								await microtick(() => expect(p.canAbort()).toBeTrue());
+								expect(p).toBePendingPromise();
+								await microtick(2, () => expect(p).toBeResolvedPromise());
 							}
 						);
 
 						itWithSetup(
-							'if promises resolved sync, not abortable 2 microticks after all promises resolved',
-							async ({p, resolveAll}) => {
-								resolveAll();
-								await microtick(2, () => expect(p.canAbort()).toBeFalse());
-							}
-						);
-
-						itWithSetup(
-							'if promises resolved async, still abortable after all promises resolved',
-							async ({p, resolveAll}) => {
+							'if promises resolved async, resolved 1 microtick after last promise resolved',
+							async ({p, resolves}) => {
+								resolves[0]();
+								resolves[1]();
 								await tick();
-								resolveAll();
-								expect(p.canAbort()).toBeTrue();
+								expect(p).toBePendingPromise();
+								resolves[2]();
+								expect(p).toBePendingPromise();
+								await microtick(() => expect(p).toBeResolvedPromise());
 							}
 						);
 
 						itWithSetup(
-							'if promises resolved async, not abortable 1 microtick after all promises resolved',
-							async ({p, resolveAll}) => {
-								await tick();
+							'resolved with array of promise resolution values',
+							async ({p, resolveAll, arr}) => {
 								resolveAll();
-								await microtick(() => expect(p.canAbort()).toBeFalse());
+								const res = await p;
+								expect(res).toEqual(arr);
 							}
 						);
-					}
-				});
-			});
+
+						if (isAbortable) {
+							itWithSetup('abortable', ({p}) => {
+								expect(p.canAbort()).toBeTrue();
+							});
+
+							itWithSetup(
+								'if promises resolved sync, still abortable after all promises resolved',
+								({p, resolveAll}) => {
+									resolveAll();
+									expect(p.canAbort()).toBeTrue();
+								}
+							);
+
+							itWithSetup(
+								'if promises resolved sync, still abortable 1 microtick after all promises resolved',
+								async ({p, resolveAll}) => {
+									resolveAll();
+									await microtick(() => expect(p.canAbort()).toBeTrue());
+								}
+							);
+
+							itWithSetup(
+								'if promises resolved sync, not abortable 2 microticks after all promises resolved',
+								async ({p, resolveAll}) => {
+									resolveAll();
+									await microtick(2, () => expect(p.canAbort()).toBeFalse());
+								}
+							);
+
+							itWithSetup(
+								'if promises resolved async, still abortable after all promises resolved',
+								async ({p, resolveAll}) => {
+									await tick();
+									resolveAll();
+									expect(p.canAbort()).toBeTrue();
+								}
+							);
+
+							itWithSetup(
+								'if promises resolved async, not abortable 1 microtick after all promises resolved',
+								async ({p, resolveAll}) => {
+									await tick();
+									resolveAll();
+									await microtick(() => expect(p.canAbort()).toBeFalse());
+								}
+							);
+						}
+					});
+				}
+			);
 		});
 
 		// TODO Tests for rejections
@@ -221,15 +229,157 @@ describe('Abortable.all', () => {
 
 	describe('when passed array of thenables', () => {
 		describe('which resolve synchronously', () => {
-			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+			describeAbortableAndPromiseWithAwaitOption(
+				({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+					const itWithSetup = createItWithSetupAndTeardown({
+						setup() {
+							const arr = [1, 2, 3];
+							const iterable = arr.map(n => ({
+								then(resolve) {
+									resolve(n);
+								}
+							}));
+							const p = awaitAll
+								? PromiseOrAbortable.all(iterable, {await: true})
+								: PromiseOrAbortable.all(iterable);
+							return {p, arr};
+						},
+						teardown: ({p}) => p
+					});
+
+					describe(`returns ${className} which is`, () => {
+						itWithSetup(`${className} class instance`, ({p}) => {
+							expect(p).toBeInstanceOf(PromiseOrAbortable);
+						});
+
+						itWithSetup('pending', ({p}) => {
+							expect(p).toBePendingPromise();
+						});
+
+						itWithSetup('still pending after 1 microtick', async ({p}) => {
+							await microtick(() => expect(p).toBePendingPromise());
+						});
+
+						itWithSetup('resolved before 2 microticks have passed', async ({p}) => {
+							await microtick(2, () => expect(p).toBeResolvedPromise());
+						});
+
+						itWithSetup('resolved with array of promise resolution values', async ({p, arr}) => {
+							const res = await p;
+							expect(res).toEqual(arr);
+						});
+
+						if (isAbortable) {
+							itWithSetup('abortable', ({p}) => {
+								expect(p.canAbort()).toBeTrue();
+							});
+						}
+					});
+				}
+			);
+		});
+
+		describe('which resolve asynchronously', () => {
+			describeAbortableAndPromiseWithAwaitOption(
+				({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+					const itWithSetup = createItWithSetupAndTeardown({
+						setup() {
+							const arr = [1, 2, 3];
+							const resolves = [];
+							const iterable = arr.map((n, i) => ({
+								then(resolve) {
+									resolves[i] = () => resolve(n);
+								}
+							}));
+							const p = awaitAll
+								? PromiseOrAbortable.all(iterable, {await: true})
+								: PromiseOrAbortable.all(iterable);
+							const resolveAll = () => resolves.forEach(resolve => resolve());
+							return {p, arr, resolves, resolveAll};
+						},
+						async teardown({p, resolveAll}) {
+							await tick();
+							resolveAll();
+							await p;
+						}
+					});
+
+					describe(`returns ${className} which is`, () => {
+						itWithSetup(`${className} class instance`, ({p}) => {
+							expect(p).toBeInstanceOf(PromiseOrAbortable);
+						});
+
+						itWithSetup('pending', ({p}) => {
+							expect(p).toBePendingPromise();
+						});
+
+						itWithSetup('pending until all promises resolved', async ({p, resolves}) => {
+							await tick();
+							resolves[0]();
+							resolves[1]();
+							await tick();
+							expect(p).toBePendingPromise();
+							resolves[2]();
+						});
+
+						itWithSetup('resolved 1 microtick after last promise resolved', async ({p, resolves}) => {
+							await tick();
+							resolves[0]();
+							resolves[1]();
+							await tick();
+							expect(p).toBePendingPromise();
+							resolves[2]();
+							expect(p).toBePendingPromise();
+							await microtick(() => expect(p).toBeResolvedPromise());
+						});
+
+						itWithSetup(
+							'resolved with array of promise resolution values',
+							async ({p, resolveAll, arr}) => {
+								await tick();
+								resolveAll();
+								const res = await p;
+								expect(res).toEqual(arr);
+							}
+						);
+
+						if (isAbortable) {
+							itWithSetup('abortable', ({p}) => {
+								expect(p.canAbort()).toBeTrue();
+							});
+
+							itWithSetup('still abortable after all promises resolved', async ({p, resolveAll}) => {
+								await tick();
+								resolveAll();
+								expect(p.canAbort()).toBeTrue();
+							});
+
+							itWithSetup(
+								'not abortable 1 microtick after all promises resolved',
+								async ({p, resolveAll}) => {
+									await tick();
+									resolveAll();
+									await microtick(() => expect(p.canAbort()).toBeFalse());
+								}
+							);
+						}
+					});
+				}
+			);
+		});
+
+		// TODO Tests for rejections
+	});
+
+	describe('when passed array of literals', () => {
+		describeAbortableAndPromiseWithAwaitOption(
+			({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
 				const itWithSetup = createItWithSetupAndTeardown({
 					setup() {
 						const arr = [1, 2, 3];
-						const p = PromiseOrAbortable.all(arr.map(n => ({
-							then(resolve) {
-								resolve(n);
-							}
-						})));
+						const p = awaitAll
+							? PromiseOrAbortable.all(arr, {await: true})
+							: PromiseOrAbortable.all(arr);
 						return {p, arr};
 					},
 					teardown: ({p}) => p
@@ -244,17 +394,14 @@ describe('Abortable.all', () => {
 						expect(p).toBePendingPromise();
 					});
 
-					itWithSetup('still pending after 1 microtick', async ({p}) => {
-						await microtick(() => expect(p).toBePendingPromise());
+					itWithSetup('resolved after 1 microtick', async ({p}) => {
+						await microtick(() => expect(p).toBeResolvedPromise());
 					});
 
-					itWithSetup('resolved before 2 microticks have passed', async ({p}) => {
-						await microtick(2, () => expect(p).toBeResolvedPromise());
-					});
-
-					itWithSetup('resolved with array of promise resolution values', async ({p, arr}) => {
+					itWithSetup('resolved with array of inputs', async ({p, arr}) => {
 						const res = await p;
 						expect(res).toEqual(arr);
+						expect(res).not.toBe(arr);
 					});
 
 					if (isAbortable) {
@@ -263,28 +410,22 @@ describe('Abortable.all', () => {
 						});
 					}
 				});
-			});
-		});
+			}
+		);
+	});
 
-		describe('which resolve asynchronously', () => {
-			describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
+	describe('when passed array of non-thenable objects', () => {
+		describeAbortableAndPromiseWithAwaitOption(
+			({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
 				const itWithSetup = createItWithSetupAndTeardown({
 					setup() {
-						const arr = [1, 2, 3];
-						const resolves = [];
-						const p = PromiseOrAbortable.all(arr.map((n, i) => ({
-							then(resolve) {
-								resolves[i] = () => resolve(n);
-							}
-						})));
-						const resolveAll = () => resolves.forEach(resolve => resolve());
-						return {p, arr, resolves, resolveAll};
+						const arr = [{a: 1}, {b: 2}, {c: 3}];
+						const p = awaitAll
+							? PromiseOrAbortable.all(arr, {await: true})
+							: PromiseOrAbortable.all(arr);
+						return {p, arr};
 					},
-					async teardown({p, resolveAll}) {
-						await tick();
-						resolveAll();
-						await p;
-					}
+					teardown: ({p}) => p
 				});
 
 				describe(`returns ${className} which is`, () => {
@@ -296,336 +437,241 @@ describe('Abortable.all', () => {
 						expect(p).toBePendingPromise();
 					});
 
-					itWithSetup('pending until all promises resolved', async ({p, resolves}) => {
-						await tick();
-						resolves[0]();
-						resolves[1]();
-						await tick();
-						expect(p).toBePendingPromise();
-						resolves[2]();
-					});
-
-					itWithSetup('resolved 1 microtick after last promise resolved', async ({p, resolves}) => {
-						await tick();
-						resolves[0]();
-						resolves[1]();
-						await tick();
-						expect(p).toBePendingPromise();
-						resolves[2]();
-						expect(p).toBePendingPromise();
+					itWithSetup('resolved after 1 microtick', async ({p}) => {
 						await microtick(() => expect(p).toBeResolvedPromise());
 					});
 
-					itWithSetup(
-						'resolved with array of promise resolution values',
-						async ({p, resolveAll, arr}) => {
-							await tick();
-							resolveAll();
-							const res = await p;
-							expect(res).toEqual(arr);
-						}
-					);
+					itWithSetup('resolved with array of inputs', async ({p, arr}) => {
+						const res = await p;
+						expect(res).toEqual(arr);
+						expect(res).not.toBe(arr);
+						expect(res[0]).toBe(arr[0]);
+						expect(res[1]).toBe(arr[1]);
+						expect(res[2]).toBe(arr[2]);
+					});
 
 					if (isAbortable) {
 						itWithSetup('abortable', ({p}) => {
 							expect(p.canAbort()).toBeTrue();
 						});
-
-						itWithSetup('still abortable after all promises resolved', async ({p, resolveAll}) => {
-							await tick();
-							resolveAll();
-							expect(p.canAbort()).toBeTrue();
-						});
-
-						itWithSetup(
-							'not abortable 1 microtick after all promises resolved',
-							async ({p, resolveAll}) => {
-								await tick();
-								resolveAll();
-								await microtick(() => expect(p.canAbort()).toBeFalse());
-							}
-						);
 					}
 				});
-			});
-		});
-
-		// TODO Tests for rejections
-	});
-
-	describe('when passed array of literals', () => {
-		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-			const itWithSetup = createItWithSetupAndTeardown({
-				setup() {
-					const arr = [1, 2, 3];
-					const p = PromiseOrAbortable.all(arr);
-					return {p, arr};
-				},
-				teardown: ({p}) => p
-			});
-
-			describe(`returns ${className} which is`, () => {
-				itWithSetup(`${className} class instance`, ({p}) => {
-					expect(p).toBeInstanceOf(PromiseOrAbortable);
-				});
-
-				itWithSetup('pending', ({p}) => {
-					expect(p).toBePendingPromise();
-				});
-
-				itWithSetup('resolved after 1 microtick', async ({p}) => {
-					await microtick(() => expect(p).toBeResolvedPromise());
-				});
-
-				itWithSetup('resolved with array of inputs', async ({p, arr}) => {
-					const res = await p;
-					expect(res).toEqual(arr);
-					expect(res).not.toBe(arr);
-				});
-
-				if (isAbortable) {
-					itWithSetup('abortable', ({p}) => {
-						expect(p.canAbort()).toBeTrue();
-					});
-				}
-			});
-		});
-	});
-
-	describe('when passed array of non-thenable objects', () => {
-		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-			const itWithSetup = createItWithSetupAndTeardown({
-				setup() {
-					const arr = [{a: 1}, {b: 2}, {c: 3}];
-					const p = PromiseOrAbortable.all(arr);
-					return {p, arr};
-				},
-				teardown: ({p}) => p
-			});
-
-			describe(`returns ${className} which is`, () => {
-				itWithSetup(`${className} class instance`, ({p}) => {
-					expect(p).toBeInstanceOf(PromiseOrAbortable);
-				});
-
-				itWithSetup('pending', ({p}) => {
-					expect(p).toBePendingPromise();
-				});
-
-				itWithSetup('resolved after 1 microtick', async ({p}) => {
-					await microtick(() => expect(p).toBeResolvedPromise());
-				});
-
-				itWithSetup('resolved with array of inputs', async ({p, arr}) => {
-					const res = await p;
-					expect(res).toEqual(arr);
-					expect(res).not.toBe(arr);
-					expect(res[0]).toBe(arr[0]);
-					expect(res[1]).toBe(arr[1]);
-					expect(res[2]).toBe(arr[2]);
-				});
-
-				if (isAbortable) {
-					itWithSetup('abortable', ({p}) => {
-						expect(p.canAbort()).toBeTrue();
-					});
-				}
-			});
-		});
+			}
+		);
 	});
 
 	describe('when passed empty array', () => {
-		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-			const itWithSetup = createItWithSetupAndTeardown({
-				setup() {
-					const p = PromiseOrAbortable.all([]);
-					return {p};
-				},
-				teardown: ({p}) => p
-			});
-
-			describe(`returns ${className} which is`, () => {
-				itWithSetup(`${className} class instance`, ({p}) => {
-					expect(p).toBeInstanceOf(PromiseOrAbortable);
+		describeAbortableAndPromiseWithAwaitOption(
+			({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+				const itWithSetup = createItWithSetupAndTeardown({
+					setup() {
+						const p = awaitAll
+							? PromiseOrAbortable.all([], {await: true})
+							: PromiseOrAbortable.all([]);
+						return {p};
+					},
+					teardown: ({p}) => p
 				});
 
-				itWithSetup('already resolved', ({p}) => {
-					expect(p).toBeResolvedPromise();
-				});
-
-				if (isAbortable) {
-					itWithSetup('not abortable', ({p}) => {
-						expect(p.canAbort()).toBeFalse();
+				describe(`returns ${className} which is`, () => {
+					itWithSetup(`${className} class instance`, ({p}) => {
+						expect(p).toBeInstanceOf(PromiseOrAbortable);
 					});
-				}
-			});
-		});
+
+					itWithSetup('already resolved', ({p}) => {
+						expect(p).toBeResolvedPromise();
+					});
+
+					if (isAbortable) {
+						itWithSetup('not abortable', ({p}) => {
+							expect(p.canAbort()).toBeFalse();
+						});
+					}
+				});
+			}
+		);
 	});
 
 	describe('when passed non-iterable', () => {
-		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-			const itWithSetup = createItWithSetupAndTeardown({
-				setup() {
-					const p = PromiseOrAbortable.all(undefined);
-					return {p};
-				},
-				async teardown({p}) {
-					await p.catch(() => {});
-				}
-			});
-
-			describe(`returns ${className} which is`, () => {
-				itWithSetup(`${className} class instance`, ({p}) => {
-					expect(p).toBeInstanceOf(PromiseOrAbortable);
+		describeAbortableAndPromiseWithAwaitOption(
+			({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+				const itWithSetup = createItWithSetupAndTeardown({
+					setup() {
+						const p = awaitAll
+							? PromiseOrAbortable.all(undefined, {await: true})
+							: PromiseOrAbortable.all(undefined);
+						return {p};
+					},
+					async teardown({p}) {
+						await p.catch(() => {});
+					}
 				});
 
-				itWithSetup('already rejected', ({p}) => {
-					expect(p).toBeRejectedPromise();
-				});
-
-				itWithSetup('rejected with TypeError', async ({p}) => {
-					const err = await getRejectionReason(p);
-					expect(err).toBeInstanceOf(TypeError);
-					expect(err.message).toBe(
-						isAbortable // eslint-disable-line no-nested-ternary
-							? 'iterable is not iterable'
-							: isNode10
-								? "Cannot read property 'Symbol(Symbol.iterator)' of undefined"
-								: 'undefined is not iterable (cannot read property Symbol(Symbol.iterator))'
-					);
-				});
-
-				if (isAbortable) {
-					itWithSetup('not abortable', ({p}) => {
-						expect(p.canAbort()).toBeFalse();
+				describe(`returns ${className} which is`, () => {
+					itWithSetup(`${className} class instance`, ({p}) => {
+						expect(p).toBeInstanceOf(PromiseOrAbortable);
 					});
-				}
-			});
-		});
+
+					itWithSetup('already rejected', ({p}) => {
+						expect(p).toBeRejectedPromise();
+					});
+
+					itWithSetup('rejected with TypeError', async ({p}) => {
+						const err = await getRejectionReason(p);
+						expect(err).toBeInstanceOf(TypeError);
+						expect(err.message).toBe(
+							isAbortable // eslint-disable-line no-nested-ternary
+								? 'iterable is not iterable'
+								: isNode10
+									? "Cannot read property 'Symbol(Symbol.iterator)' of undefined"
+									: 'undefined is not iterable (cannot read property Symbol(Symbol.iterator))'
+						);
+					});
+
+					if (isAbortable) {
+						itWithSetup('not abortable', ({p}) => {
+							expect(p.canAbort()).toBeFalse();
+						});
+					}
+				});
+			}
+		);
 	});
 
 	describe('when passed non-iterable object', () => {
-		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-			const itWithSetup = createItWithSetupAndTeardown({
-				setup() {
-					const p = PromiseOrAbortable.all({});
-					return {p};
-				},
-				async teardown({p}) {
-					await p.catch(() => {});
-				}
-			});
-
-			describe(`returns ${className} which is`, () => {
-				itWithSetup(`${className} class instance`, ({p}) => {
-					expect(p).toBeInstanceOf(PromiseOrAbortable);
+		describeAbortableAndPromiseWithAwaitOption(
+			({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+				const itWithSetup = createItWithSetupAndTeardown({
+					setup() {
+						const p = awaitAll
+							? PromiseOrAbortable.all({}, {await: true})
+							: PromiseOrAbortable.all({});
+						return {p};
+					},
+					async teardown({p}) {
+						await p.catch(() => {});
+					}
 				});
 
-				itWithSetup('already rejected', ({p}) => {
-					expect(p).toBeRejectedPromise();
-				});
-
-				itWithSetup('rejected with TypeError', async ({p}) => {
-					const err = await getRejectionReason(p);
-					expect(err).toBeInstanceOf(TypeError);
-					expect(err.message).toBe(
-						isAbortable // eslint-disable-line no-nested-ternary
-							? 'iterable is not iterable'
-							: isNode10
-								? '#<Object> is not iterable'
-								: 'object is not iterable (cannot read property Symbol(Symbol.iterator))'
-					);
-				});
-
-				if (isAbortable) {
-					itWithSetup('not abortable', ({p}) => {
-						expect(p.canAbort()).toBeFalse();
+				describe(`returns ${className} which is`, () => {
+					itWithSetup(`${className} class instance`, ({p}) => {
+						expect(p).toBeInstanceOf(PromiseOrAbortable);
 					});
-				}
-			});
-		});
+
+					itWithSetup('already rejected', ({p}) => {
+						expect(p).toBeRejectedPromise();
+					});
+
+					itWithSetup('rejected with TypeError', async ({p}) => {
+						const err = await getRejectionReason(p);
+						expect(err).toBeInstanceOf(TypeError);
+						expect(err.message).toBe(
+							isAbortable // eslint-disable-line no-nested-ternary
+								? 'iterable is not iterable'
+								: isNode10
+									? '#<Object> is not iterable'
+									: 'object is not iterable (cannot read property Symbol(Symbol.iterator))'
+						);
+					});
+
+					if (isAbortable) {
+						itWithSetup('not abortable', ({p}) => {
+							expect(p.canAbort()).toBeFalse();
+						});
+					}
+				});
+			}
+		);
 	});
 
 	describe('when passed iterable with `[Symbol.iterator]()` method that returns invalid iterator', () => {
-		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-			const itWithSetup = createItWithSetupAndTeardown({
-				setup() {
-					const iterable = {
-						[Symbol.iterator]() {
-							return {};
-						}
-					};
-					const p = PromiseOrAbortable.all(iterable);
-					return {p};
-				},
-				async teardown({p}) {
-					await p.catch(() => {});
-				}
-			});
-
-			describe(`returns ${className} which is`, () => {
-				itWithSetup(`${className} class instance`, ({p}) => {
-					expect(p).toBeInstanceOf(PromiseOrAbortable);
+		describeAbortableAndPromiseWithAwaitOption(
+			({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+				const itWithSetup = createItWithSetupAndTeardown({
+					setup() {
+						const iterable = {
+							[Symbol.iterator]() {
+								return {};
+							}
+						};
+						const p = awaitAll
+							? PromiseOrAbortable.all(iterable, {await: true})
+							: PromiseOrAbortable.all(iterable);
+						return {p};
+					},
+					async teardown({p}) {
+						await p.catch(() => {});
+					}
 				});
 
-				itWithSetup('already rejected', ({p}) => {
-					expect(p).toBeRejectedPromise();
-				});
-
-				itWithSetup('rejected with TypeError', async ({p}) => {
-					const err = await getRejectionReason(p);
-					expect(err).toBeInstanceOf(TypeError);
-					expect(err.message).toBe('undefined is not a function');
-				});
-
-				if (isAbortable) {
-					itWithSetup('not abortable', ({p}) => {
-						expect(p.canAbort()).toBeFalse();
+				describe(`returns ${className} which is`, () => {
+					itWithSetup(`${className} class instance`, ({p}) => {
+						expect(p).toBeInstanceOf(PromiseOrAbortable);
 					});
-				}
-			});
-		});
+
+					itWithSetup('already rejected', ({p}) => {
+						expect(p).toBeRejectedPromise();
+					});
+
+					itWithSetup('rejected with TypeError', async ({p}) => {
+						const err = await getRejectionReason(p);
+						expect(err).toBeInstanceOf(TypeError);
+						expect(err.message).toBe('undefined is not a function');
+					});
+
+					if (isAbortable) {
+						itWithSetup('not abortable', ({p}) => {
+							expect(p.canAbort()).toBeFalse();
+						});
+					}
+				});
+			}
+		);
 	});
 
 	describe('when passed iterable with `[Symbol.iterator]()` method that throws', () => {
-		describeAbortableAndPromise(({PromiseOrAbortable, className, isAbortable}) => {
-			const itWithSetup = createItWithSetupAndTeardown({
-				setup() {
-					const err = new Error('iterator error');
-					const iterable = {
-						[Symbol.iterator]() {
-							throw err;
-						}
-					};
-					const p = PromiseOrAbortable.all(iterable);
-					return {p, expectedErr: err};
-				},
-				async teardown({p}) {
-					await p.catch(() => {});
-				}
-			});
-
-			describe(`returns ${className} which is`, () => {
-				itWithSetup(`${className} class instance`, ({p}) => {
-					expect(p).toBeInstanceOf(PromiseOrAbortable);
+		describeAbortableAndPromiseWithAwaitOption(
+			({PromiseOrAbortable, className, isAbortable, awaitAll}) => {
+				const itWithSetup = createItWithSetupAndTeardown({
+					setup() {
+						const err = new Error('iterator error');
+						const iterable = {
+							[Symbol.iterator]() {
+								throw err;
+							}
+						};
+						const p = awaitAll
+							? PromiseOrAbortable.all(iterable, {await: true})
+							: PromiseOrAbortable.all(iterable);
+						return {p, expectedErr: err};
+					},
+					async teardown({p}) {
+						await p.catch(() => {});
+					}
 				});
 
-				itWithSetup('already rejected', ({p}) => {
-					expect(p).toBeRejectedPromise();
-				});
-
-				itWithSetup('rejected with thrown error', async ({p, expectedErr}) => {
-					const err = await getRejectionReason(p);
-					expect(err).toBe(expectedErr);
-				});
-
-				if (isAbortable) {
-					itWithSetup('not abortable', ({p}) => {
-						expect(p.canAbort()).toBeFalse();
+				describe(`returns ${className} which is`, () => {
+					itWithSetup(`${className} class instance`, ({p}) => {
+						expect(p).toBeInstanceOf(PromiseOrAbortable);
 					});
-				}
-			});
-		});
+
+					itWithSetup('already rejected', ({p}) => {
+						expect(p).toBeRejectedPromise();
+					});
+
+					itWithSetup('rejected with thrown error', async ({p, expectedErr}) => {
+						const err = await getRejectionReason(p);
+						expect(err).toBe(expectedErr);
+					});
+
+					if (isAbortable) {
+						itWithSetup('not abortable', ({p}) => {
+							expect(p.canAbort()).toBeFalse();
+						});
+					}
+				});
+			}
+		);
 	});
 
 	describe('when passed iterable returning iterator with `.next()` method that returns invalid value', () => {
@@ -1244,7 +1290,7 @@ describe('Abortable.all', () => {
 	// TODO Tests for timing for thenables which call callback async
 
 	describe('timing', () => {
-		describeAbortableAndPromise(({PromiseOrAbortable}) => {
+		describeAbortableAndPromiseWithAwaitOption(({PromiseOrAbortable, awaitAll}) => {
 			it('runs in sequence', async () => {
 				const calls = [];
 				const called = callName => calls.push(callName);
@@ -1278,7 +1324,9 @@ describe('Abortable.all', () => {
 
 				microtick(() => called('before microtick'));
 
-				const p = PromiseOrAbortable.all(iterable);
+				const p = awaitAll
+					? PromiseOrAbortable.all(iterable, {await: true})
+					: PromiseOrAbortable.all(iterable);
 				called('sync');
 
 				const pTick1 = microtick(() => called(`after microtick = ${promiseStatus(p)}`));
