@@ -55,7 +55,7 @@ describe('Abortable.all', () => {
 					// and then the `.then()` callback is not called until another microtick has passed.
 					// Could solve this by using V8 runtime functions to synchronously detect resolved promises,
 					// but that seems like a bad idea.
-					itWithSetup.skip('not resolved after 1 microtick', async ({p}) => {
+					itWithSetup.skip('still pending after 1 microtick', async ({p}) => {
 						await microtick(() => expect(p).toBePendingPromise());
 					});
 
@@ -242,7 +242,7 @@ describe('Abortable.all', () => {
 						expect(p).toBePendingPromise();
 					});
 
-					itWithSetup('not resolved after 1 microtick', async ({p}) => {
+					itWithSetup('still pending after 1 microtick', async ({p}) => {
 						await microtick(() => expect(p).toBePendingPromise());
 					});
 
