@@ -25,6 +25,9 @@ require('./support/index.js');
 describe('Abortable.all', () => {
 	// TODO Tests for normal behaviour with valid iterables
 	// TODO Test sync abort does not abort promises which are already followed elsewhere
+	// TODO Test follow thenables which call `.then()` resolve callback with another thenable
+	// TODO Test multiple calls to `.then()` callbacks ignored
+	// (inc after resolve callback called with another thenable)
 
 	describe('when passed array of Promises', () => {
 		describe('which are already resolved', () => {
