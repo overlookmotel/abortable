@@ -41,5 +41,5 @@ describe('.then()', () => {
 		});
 	});
 
-	// TODO Write more tests
+	// TODO: Write more tests
 });

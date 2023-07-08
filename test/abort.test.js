@@ -419,7 +419,7 @@ describe('.abort()', () => {
 				});
 			}
 
-			// TODO Write more tests
+			// TODO: Write more tests
 		});
 
 		describe('resolved outside executor', () => {
@@ -651,17 +651,17 @@ describe('.abort()', () => {
 				});
 			}
 
-			// TODO Write more tests
+			// TODO: Write more tests
 		});
 	});
 
 	describe('called on Abortable resolved with abortable object', () => {
-		// TODO Write tests
+		// TODO: Write tests
 	});
 
 	describe('called on Abortable chained on another Abortable with `.then`', () => {
-		// TODO Write tests
+		// TODO: Write tests
 	});
 
-	// TODO Write more tests
+	// TODO: Write more tests
 });

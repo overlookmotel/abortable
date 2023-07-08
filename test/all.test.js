@@ -23,10 +23,10 @@ require('./support/index.js');
 // Tests
 
 describe('Abortable.all', () => {
-	// TODO Tests for normal behaviour with valid iterables
-	// TODO Test sync abort does not abort promises which are already followed elsewhere
-	// TODO Test follow thenables which call `.then()` resolve callback with another thenable
-	// TODO Test multiple calls to `.then()` callbacks ignored
+	// TODO: Tests for normal behaviour with valid iterables
+	// TODO: Test sync abort does not abort promises which are already followed elsewhere
+	// TODO: Test follow thenables which call `.then()` resolve callback with another thenable
+	// TODO: Test multiple calls to `.then()` callbacks ignored
 	// (inc after resolve callback called with another thenable)
 
 	describe('when passed array of Promises', () => {
@@ -227,7 +227,7 @@ describe('Abortable.all', () => {
 			);
 		});
 
-		// TODO Tests for rejections
+		// TODO: Tests for rejections
 	});
 
 	describe('when passed array of thenables', () => {
@@ -371,7 +371,7 @@ describe('Abortable.all', () => {
 			);
 		});
 
-		// TODO Tests for rejections
+		// TODO: Tests for rejections
 	});
 
 	describe('when passed array of literals', () => {
@@ -1286,11 +1286,11 @@ describe('Abortable.all', () => {
 		}
 	});
 
-	// TODO Tests for thenables with getter on `.abort` property which throws
-	// TODO Tests for thenables with getter on `[IS_ABORTABLE]` property which throws
-	// TODO Tests that `.then` getter called only once
-	// TODO Tests that `.then()` called only once
-	// TODO Tests for timing for thenables which call callback async
+	// TODO: Tests for thenables with getter on `.abort` property which throws
+	// TODO: Tests for thenables with getter on `[IS_ABORTABLE]` property which throws
+	// TODO: Tests that `.then` getter called only once
+	// TODO: Tests that `.then()` called only once
+	// TODO: Tests for timing for thenables which call callback async
 
 	describe('timing', () => {
 		describeAbortableAndPromiseWithAwaitOption(({PromiseOrAbortable, awaitAll}) => {
